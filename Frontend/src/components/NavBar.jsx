@@ -1,10 +1,18 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function NavBar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, isAdminUser, signOut } = useAuth()
 
   const isActive = (path) => location.pathname === path
+
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/auth/login')
+  }
 
   return (
     <nav className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-lg sticky top-0 z-40">
@@ -20,7 +28,7 @@ export default function NavBar() {
           </Link>
 
           {/* Navigation Links */}
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
             <Link
               to="/"
               className={`px-6 py-3 rounded-lg font-bold transition transform hover:scale-105 ${
@@ -51,6 +59,40 @@ export default function NavBar() {
             >
               About
             </Link>
+
+            {isAdminUser && (
+              <Link
+                to="/admin"
+                className={`px-6 py-3 rounded-lg font-bold transition transform hover:scale-105 ${
+                  isActive('/admin')
+                    ? 'bg-white text-indigo-600 shadow-lg'
+                    : 'text-white hover:bg-white hover:bg-opacity-20'
+                }`}
+              >
+                👑 Admin
+              </Link>
+            )}
+
+            {user ? (
+              <div className="flex items-center gap-2 ml-4">
+                <span className="text-white text-sm">
+                  {user.email}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition font-semibold"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/auth/login"
+                className="ml-4 px-6 py-3 bg-white text-indigo-600 rounded-lg font-bold hover:shadow-lg transition transform hover:scale-105"
+              >
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>
