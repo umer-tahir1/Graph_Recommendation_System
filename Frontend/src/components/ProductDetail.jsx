@@ -2,18 +2,18 @@ import React from 'react'
 
 export default function ProductDetail({product, selectedUser, onInteract, onClose}){
   return (
-    <div className="product-detail">
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <h3>{product.name}</h3>
-        <button onClick={onClose} style={{background:'#ddd',color:'#000'}}>Close</button>
+    <div className="bg-white p-4 rounded shadow-lg">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">{product.name}</h3>
+        <button className="text-sm px-2 py-1 bg-gray-200 rounded" onClick={onClose}>Close</button>
       </div>
-      <div style={{color:'#6b7280',marginBottom:12}}>{product.category}</div>
-      <div style={{marginBottom:12}}>Detailed description placeholder — add product description here.</div>
+      <div className="text-sm text-gray-500 mt-2 mb-4">{product.category}</div>
+      <div className="mb-4 text-gray-700">Detailed description placeholder — add product description here.</div>
       <div>
         {selectedUser ? (
-          <button onClick={()=>onInteract(selectedUser, product.id)}>Buy as User {selectedUser}</button>
+          <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={()=>onInteract(selectedUser, product.id)}>Buy as User {selectedUser}</button>
         ) : (
-          <div className="muted">Select a user to enable purchase</div>
+          <div className="text-gray-500">Select a user to enable purchase</div>
         )}
       </div>
     </div>
