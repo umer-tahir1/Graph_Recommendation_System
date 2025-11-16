@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -7,6 +7,28 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const { user, isAdminUser, signOut } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const sidebarRef = useRef(null)
+  const toggleRef = useRef(null)
+
+  useEffect(() => {
+    const handleOutside = (event) => {
+      if (!isOpen) return
+      const sidebarEl = sidebarRef.current
+      const toggleEl = toggleRef.current
+      const clickedInsideSidebar = sidebarEl && sidebarEl.contains(event.target)
+      const clickedToggle = toggleEl && toggleEl.contains(event.target)
+      if (!clickedInsideSidebar && !clickedToggle) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleOutside)
+      document.removeEventListener('touchstart', handleOutside)
+    }
+  }, [isOpen])
 
   const isActive = (path) => {
     if (path.startsWith('/admin')) {
@@ -38,17 +60,20 @@ export default function Sidebar() {
   return (
     <>
       {/* Three Dots Toggle Button (like browser menu) */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Open menu"
-        className="fixed top-4 left-4 z-50 p-2 rounded-full bg-white border border-gray-200 shadow hover:bg-gray-100 focus:outline-none"
-      >
-        <div className="flex flex-col justify-center items-center space-y-1">
-          <span className="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
-          <span className="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
-          <span className="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
-        </div>
-      </button>
+      {!isOpen && (
+        <button
+          ref={toggleRef}
+          onClick={() => setIsOpen(true)}
+          aria-label="Open menu"
+          className="fixed top-4 left-4 z-50 p-2 rounded-full bg-white border border-gray-200 shadow hover:bg-gray-100 focus:outline-none"
+        >
+          <div className="flex flex-col justify-center items-center space-y-1">
+            <span className="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
+            <span className="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
+            <span className="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
+          </div>
+        </button>
+      )}
 
       {/* Overlay (click to close) */}
       {isOpen && (
@@ -64,6 +89,7 @@ export default function Sidebar() {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-hidden={!isOpen}
+        ref={sidebarRef}
       >
         <div className="flex flex-col h-full py-4">
           {/* Navigation */}

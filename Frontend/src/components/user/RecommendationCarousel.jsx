@@ -10,7 +10,7 @@ import ProductCard from './ProductCard'
  *  onSelect?: (product: any) => void,
  *  onLike?: (product: any) => void,
  *  onAddToCart?: (product: any) => void,
- *  pendingProductId?: number | string | null,
+ *  pendingProductIds?: Array<number | string>,
  *  emptyMessage?: string,
  * }} props
  */
@@ -22,9 +22,11 @@ export default function RecommendationCarousel({
   onSelect,
   onLike,
   onAddToCart,
-  pendingProductId = null,
+  pendingProductIds = [],
   emptyMessage = 'No recommendations yet.',
 }) {
+  const pendingSet = new Set(pendingProductIds.filter(Boolean))
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -35,26 +37,28 @@ export default function RecommendationCarousel({
         {loading && <span className="text-sm text-indigo-100 animate-pulse">Loading…</span>}
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="rounded-3xl bg-slate-950/40 p-4">
         {items.length === 0 && !loading ? (
           <div className="text-slate-300 bg-white/5 border border-white/10 rounded-3xl px-6 py-8">
             {emptyMessage}
           </div>
         ) : (
-          items.map(({ product, score }) => (
-            product ? (
-              <ProductCard
-                key={product.id}
-                product={product}
-                score={score}
-                isActive={activeProductId === product.id}
-                onSelect={onSelect}
-                onLike={onLike}
-                onAddToCart={onAddToCart}
-                pendingAction={pendingProductId === product.id}
-              />
-            ) : null
-          ))
+          <div className="flex flex-wrap gap-4 justify-start">
+            {items.map(({ product, score }) => (
+              product ? (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  score={score}
+                  isActive={activeProductId === product.id}
+                  onSelect={onSelect}
+                  onLike={onLike}
+                  onAddToCart={onAddToCart}
+                  pendingAction={pendingSet.has(product.id)}
+                />
+              ) : null
+            ))}
+          </div>
         )}
       </div>
     </div>

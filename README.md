@@ -31,6 +31,18 @@ cd Backend
 pytest tests
 ```
 
+### Supabase admin mocking
+
+The admin dashboard normally calls Supabase’s service-role APIs to enumerate/manage users. During local development you can avoid those remote calls (and the need for `SUPABASE_SERVICE_ROLE_KEY`) by enabling the mock layer:
+
+```powershell
+cd Backend
+$env:MOCK_SUPABASE=1
+uvicorn app.main:app --reload
+```
+
+When `MOCK_SUPABASE=1` **or** `SUPABASE_SERVICE_ROLE_KEY` is unset, `/admin/users` and related endpoints return deterministic in-memory records so you can exercise the UI without touching your Supabase project. Deployments with valid credentials leave the mock disabled automatically.
+
 ## Frontend
 
 ```powershell

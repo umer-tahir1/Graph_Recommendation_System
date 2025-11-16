@@ -98,14 +98,27 @@ export function createReview(review){
 }
 
 export function addToCart(item){
-  return post('/cart', item)
+  if (item?.user_id != null) {
+    return post('/cart', item)
+  }
+  const normalized = {
+    product_id: item.productId ?? item.product_id,
+    quantity: item.quantity ?? 1,
+  }
+  return post('/me/cart', normalized)
 }
 
 export function fetchCart(userId){
-  return get(`/cart/${userId}`)
+  if (userId !== undefined && userId !== null) {
+    return get(`/cart/${userId}`)
+  }
+  return get('/me/cart')
 }
 
-export function removeCartItem(itemId){
+export function removeCartItem(itemId, { currentUser = false } = {}){
+  if (currentUser) {
+    return client.delete(`/me/cart/${itemId}`)
+  }
   return client.delete(`/cart/${itemId}`)
 }
 
@@ -180,6 +193,10 @@ export function fetchAdminAuditLogs(params={}){
 
 export function emitClientAuditLog(entry){
   return post('/admin/audit', entry)
+}
+
+export function fetchAuthProfile(){
+  return get('/auth/profile')
 }
 
 /**

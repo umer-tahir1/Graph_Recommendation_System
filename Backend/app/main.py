@@ -18,6 +18,7 @@ from .models import (
     Category,
     Review,
     CartItem,
+    CartItemCreate,
     ProductGraph,
     GraphNode,
     GraphEdge,
@@ -34,6 +35,7 @@ from .models import (
     GraphRecommendationResponse,
     GraphRecommendationItem,
     GraphRecommendationPath,
+    AuthProfile,
 )
 from .product_graph import ProductGraph as WeightedProductGraph, Product as WeightedProduct
 
@@ -297,6 +299,16 @@ def get_users():
     return [User(**r) for r in crud.list_users()]
 
 
+@app.get('/auth/profile', response_model=AuthProfile)
+def auth_profile(user_ctx: UserAuthContext = Depends(require_user)):
+    return AuthProfile(
+        user_id=user_ctx.user_id,
+        email=user_ctx.email,
+        is_admin=user_ctx.has_role('admin'),
+        roles=user_ctx.roles,
+    )
+
+
 # -------------------- Categories -------------------- #
 
 @app.get('/categories', response_model=List[Category])
@@ -453,7 +465,7 @@ def admin_graph_export(admin: AdminAuthContext = Depends(require_admin)):
 
 @app.get('/admin/users', response_model=List[SupabaseUser])
 def admin_list_users(admin: AdminAuthContext = Depends(require_admin)):
-    users = supabase_admin.paged_user_list()
+    users = supabase_admin.paged_user_list(active_user_ids={admin.user_id})
     emit_audit_event(
         admin,
         action='user.list',
@@ -601,6 +613,41 @@ def get_cart(user_id: int):
 
 @app.delete('/cart/{item_id}')
 def remove_cart_item(item_id: int):
+    crud.delete_cart_item(item_id)
+    return {'status': 'ok'}
+
+
+@app.get('/me/cart', response_model=List[CartItem])
+def get_my_cart(user_ctx: UserAuthContext = Depends(require_user)):
+    internal_user = _resolve_internal_user(user_ctx, None)
+    rows = crud.list_cart_items(internal_user['id'])
+    return [CartItem(**row) for row in rows]
+
+
+@app.post('/me/cart', response_model=CartItem)
+def add_to_my_cart(item: CartItemCreate, user_ctx: UserAuthContext = Depends(require_user)):
+    internal_user = _resolve_internal_user(user_ctx, None)
+    cid = crud.add_cart_item(internal_user['id'], item.product_id, item.quantity)
+    record = crud.get_cart_item(cid)
+    if not record:
+        record = {
+            'id': cid,
+            'user_id': internal_user['id'],
+            'product_id': item.product_id,
+            'quantity': item.quantity,
+            'product_name': None,
+            'price': None,
+            'image_url': None,
+        }
+    return CartItem(**record)
+
+
+@app.delete('/me/cart/{item_id}')
+def remove_my_cart_item(item_id: int, user_ctx: UserAuthContext = Depends(require_user)):
+    internal_user = _resolve_internal_user(user_ctx, None)
+    record = crud.get_cart_item(item_id)
+    if not record or record['user_id'] != internal_user['id']:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Cart item not found')
     crud.delete_cart_item(item_id)
     return {'status': 'ok'}
 

@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 export default function Signup() {
   const navigate = useNavigate()
   const { signUp } = useAuth()
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -15,6 +16,11 @@ export default function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    if (!username.trim()) {
+      setError('Username is required')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -28,7 +34,8 @@ export default function Signup() {
 
     setLoading(true)
 
-    const { error: signUpError } = await signUp(email, password)
+    const trimmedUsername = username.trim()
+    const { error: signUpError } = await signUp(email, password, trimmedUsername)
 
     if (signUpError) {
       setError(signUpError.message)
@@ -79,12 +86,23 @@ export default function Signup() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
+              <label className="block text-gray-700 font-semibold mb-2">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 placeholder:text-gray-400 caret-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Display name"
+                required
+              />
+            </div>
+            <div>
               <label className="block text-gray-700 font-semibold mb-2">Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 placeholder:text-gray-400 caret-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="you@example.com"
                 required
               />
@@ -96,7 +114,7 @@ export default function Signup() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 placeholder:text-gray-400 caret-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="At least 6 characters"
                 required
               />
@@ -108,7 +126,7 @@ export default function Signup() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 placeholder:text-gray-400 caret-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Repeat your password"
                 required
               />

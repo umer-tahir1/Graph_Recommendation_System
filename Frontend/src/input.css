@@ -4,3 +4,25 @@
 
 /* Custom utilities can go here */
 .brand-shadow { box-shadow: 0 1px 4px rgba(2,6,23,0.06); }
+
+@layer base {
+	html,
+	body {
+		@apply bg-slate-950 text-white;
+	}
+
+	body {
+		@apply overflow-x-hidden;
+	}
+
+	input,
+	textarea,
+	select {
+		@apply text-slate-900;
+	}
+
+	input::placeholder,
+	textarea::placeholder {
+		@apply text-slate-500;
+	}
+}

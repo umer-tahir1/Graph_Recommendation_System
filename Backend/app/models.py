@@ -42,6 +42,11 @@ class CartItem(BaseModel):
     image_url: Optional[str] = None
 
 
+class CartItemCreate(BaseModel):
+    product_id: int
+    quantity: int = Field(ge=1)
+
+
 class Interaction(BaseModel):
     id: Optional[int] = None
     user_id: int
@@ -159,10 +164,13 @@ class SupabaseUser(BaseModel):
     email: Optional[str]
     role: Optional[str] = None
     status: Optional[str] = None
+    presence: Optional[str] = None
     last_sign_in_at: Optional[str] = None
     banned_until: Optional[str] = None
     app_metadata: Dict[str, Any] = Field(default_factory=dict)
     user_metadata: Dict[str, Any] = Field(default_factory=dict)
+    placeholder: bool = False
+    allowlisted: bool = False
 
 
 class SupabaseUserUpdate(BaseModel):
@@ -199,3 +207,10 @@ class AdminAuditLogCreate(BaseModel):
     before_state: Optional[Any] = None
     after_state: Optional[Any] = None
     metadata: Optional[Dict[str, Any]] = None
+
+
+class AuthProfile(BaseModel):
+    user_id: str
+    email: Optional[str] = None
+    is_admin: bool
+    roles: List[str] = Field(default_factory=list)

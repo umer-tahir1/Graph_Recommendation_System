@@ -3,9 +3,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
+import { CartProvider } from './contexts/CartContext'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
+import CartDrawer from './components/cart/CartDrawer'
 
 const Home = lazy(() => import('./pages/Home'))
 const Products = lazy(() => import('./pages/Products'))
@@ -13,8 +15,10 @@ const About = lazy(() => import('./pages/About'))
 const Contact = lazy(() => import('./pages/Contact'))
 const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 const AdminPortal = lazy(() => import('./pages/AdminPortal'))
 const UserPortal = lazy(() => import('./pages/UserPortal'))
+const Checkout = lazy(() => import('./pages/Checkout'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,16 +34,18 @@ export default function App() {
     <Router>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <div className="min-h-screen bg-gray-50">
-            <Sidebar />
-            <main className="w-full">
-              <Suspense fallback={<RouteLoading />}>
-                <Routes>
+          <CartProvider>
+            <div className="min-h-screen bg-gray-50">
+              <Sidebar />
+              <main className="w-full">
+                <Suspense fallback={<RouteLoading />}>
+                  <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/auth/login" element={<Login />} />
                   <Route path="/auth/signup" element={<Signup />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route 
                     path="/products" 
                     element={
@@ -48,7 +54,7 @@ export default function App() {
                       </ProtectedRoute>
                     } 
                   />
-                  <Route
+                    <Route
                     path="/portal"
                     element={
                       <ProtectedRoute>
@@ -56,6 +62,14 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+                    <Route
+                      path="/checkout"
+                      element={
+                        <ProtectedRoute>
+                          <Checkout />
+                        </ProtectedRoute>
+                      }
+                    />
                   <Route 
                     path="/admin/*" 
                     element={
@@ -64,11 +78,13 @@ export default function App() {
                       </AdminRoute>
                     } 
                   />
-                </Routes>
-              </Suspense>
-            </main>
-            <Toaster position="top-right" toastOptions={{ duration: 3200 }} />
-          </div>
+                  </Routes>
+                </Suspense>
+              </main>
+              <CartDrawer />
+              <Toaster position="top-right" toastOptions={{ duration: 3200 }} />
+            </div>
+          </CartProvider>
         </AuthProvider>
       </QueryClientProvider>
     </Router>

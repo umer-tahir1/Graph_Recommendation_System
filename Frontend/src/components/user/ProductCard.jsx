@@ -26,7 +26,7 @@ export default function ProductCard({
 
   const image = product.image_url || product.imageUrl
   const cardClasses = [
-    'min-w-[230px] rounded-3xl border px-4 py-5 transition-all text-left',
+    'flex-1 basis-[180px] min-w-[160px] max-w-[220px] rounded-3xl border px-4 py-5 transition-all text-left',
     'bg-white/80 backdrop-blur shadow-sm hover:shadow-xl flex flex-col gap-4',
     isActive ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-slate-200'
   ].join(' ')

@@ -246,6 +246,22 @@ def list_cart_items(user_id: int) -> List[Dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
+def get_cart_item(item_id: int) -> Optional[Dict[str, Any]]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute('''
+        SELECT ci.id, ci.user_id, ci.product_id, ci.quantity,
+               p.name as product_name, d.price, d.image_url
+        FROM cart_items ci
+        JOIN products p ON p.id = ci.product_id
+        LEFT JOIN product_details d ON d.product_id = p.id
+        WHERE ci.id = ?
+    ''', (item_id,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def delete_cart_item(item_id: int) -> None:
     conn = get_conn()
     cur = conn.cursor()

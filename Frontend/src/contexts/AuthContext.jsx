@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, userIsAdmin } from '../lib/supabase'
-import { setApiAuthToken, emitClientAuditLog } from '@/api'
+import { setApiAuthToken, emitClientAuditLog, fetchAuthProfile } from '@/api'
 
 /**
  * @typedef {Object} AuthContextValue
@@ -9,7 +9,7 @@ import { setApiAuthToken, emitClientAuditLog } from '@/api'
  * @property {string | null} accessToken
  * @property {boolean} loading
  * @property {boolean} isAdminUser
- * @property {(email: string, password: string) => Promise<any>} signUp
+ * @property {(email: string, password: string, username?: string) => Promise<any>} signUp
  * @property {(email: string, password: string) => Promise<any>} signIn
  * @property {() => Promise<{ error: import('@supabase/supabase-js').AuthError | null }>} signOut
  * @property {(email: string) => Promise<any>} resetPassword
@@ -18,6 +18,17 @@ import { setApiAuthToken, emitClientAuditLog } from '@/api'
 
 /** @type {import('react').Context<AuthContextValue | null>} */
 const AuthContext = createContext(null)
+
+const resolveSiteUrl = () => {
+  const fromEnv = `${import.meta.env.VITE_SITE_URL || ''}`.trim()
+  if (fromEnv) {
+    return fromEnv.replace(/\/$/, '')
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin
+  }
+  return ''
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -61,13 +72,48 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  const signUp = async (email, password) => {
+  useEffect(() => {
+    let cancelled = false
+    if (!user || !accessToken) {
+      setIsAdminUser(false)
+      return undefined
+    }
+
+    const syncAdminFlag = async () => {
+      try {
+        const profile = await fetchAuthProfile()
+        if (!cancelled) {
+          setIsAdminUser(Boolean(profile?.is_admin))
+        }
+      } catch (_error) {
+        if (!cancelled) {
+          setIsAdminUser(userIsAdmin(user))
+        }
+      }
+    }
+
+    syncAdminFlag()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user, accessToken])
+
+  const signUp = async (email, password, username) => {
+    const siteUrl = resolveSiteUrl() || (typeof window !== 'undefined' ? window.location.origin : '')
+    const options = {
+      emailRedirectTo: siteUrl ? `${siteUrl}/auth/callback` : undefined,
+    }
+    if (username && username.trim()) {
+      options.data = {
+        full_name: username.trim(),
+        username: username.trim(),
+      }
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      }
+      options,
     })
     if (!error) {
       updateStateFromSession(data.session)

@@ -9,6 +9,16 @@ export interface Product {
   inventory?: number | null
 }
 
+export interface CartItem {
+  id: number
+  user_id: number
+  product_id: number
+  quantity: number
+  product_name?: string | null
+  price?: number | null
+  image_url?: string | null
+}
+
 export interface GraphRecommendationEdge {
   source: number
   target: number

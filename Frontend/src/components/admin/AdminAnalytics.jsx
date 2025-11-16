@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import { fetchAdminGraphExport } from '@/api'
 import RecommendationGraph from '../RecommendationGraph'
 import { useAuditEmitter } from '../../hooks/useAuditEmitter'
@@ -8,23 +9,30 @@ export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true)
   const { emitAudit } = useAuditEmitter()
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
-    const data = await fetchAdminGraphExport()
-    setSnapshot(data)
-    setLoading(false)
-    emitAudit({
-      action: 'graph.export',
-      targetType: 'graph',
-      metadata: { nodes: data?.nodes?.length || 0, edges: data?.edges?.length || 0 },
-      after: data,
-      targetDisplay: 'Graph snapshot',
-    })
-  }
+    try {
+      const data = await fetchAdminGraphExport()
+      setSnapshot(data)
+      emitAudit({
+        action: 'graph.export',
+        targetType: 'graph',
+        metadata: { nodes: data?.nodes?.length || 0, edges: data?.edges?.length || 0 },
+        after: data,
+        targetDisplay: 'Graph snapshot',
+      })
+    } catch (error) {
+      console.error('Failed to load graph analytics', error)
+      toast.error('Unable to load graph analytics')
+      setSnapshot(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [emitAudit])
 
   useEffect(() => {
     load()
-  }, [])
+  }, [load])
 
   return (
     <section className="space-y-6">
@@ -50,7 +58,7 @@ export default function AdminAnalytics() {
         <h3 className="text-2xl font-bold text-slate-900 mb-4">Top products by interactions</h3>
         {loading ? (
           <p className="text-slate-400">Loading analytics…</p>
-        ) : (
+        ) : snapshot?.top_products?.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="text-xs uppercase tracking-wide text-slate-400">
@@ -62,7 +70,7 @@ export default function AdminAnalytics() {
                 </tr>
               </thead>
               <tbody>
-                {(snapshot?.top_products || []).map((item) => (
+                {snapshot.top_products.map((item) => (
                   <tr key={item.product_id} className="border-t border-slate-100">
                     <td className="py-3 pr-4 font-semibold text-slate-800">{item.product_name}</td>
                     <td className="py-3 pr-4 text-slate-500">{item.category}</td>
@@ -73,6 +81,8 @@ export default function AdminAnalytics() {
               </tbody>
             </table>
           </div>
+        ) : (
+          <p className="text-slate-400">No analytics available.</p>
         )}
       </div>
 

@@ -14,6 +14,20 @@ const ROLE_OPTIONS = [
   { label: 'Viewer', value: 'viewer' },
 ]
 
+const ADMIN_ALLOWLIST = (import.meta.env.VITE_ADMIN_EMAILS || '')
+  .split(',')
+  .map((value) => {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return null
+    }
+    return {
+      original: trimmed,
+      normalized: trimmed.toLowerCase(),
+    }
+  })
+  .filter(Boolean)
+
 const formatTimestamp = (value) => {
   if (!value) return 'Never'
   try {
@@ -51,15 +65,46 @@ export default function AdminUsers() {
     }
   }
 
-  const stats = useMemo(() => {
-    const total = users.length
-    const admins = users.filter((u) => (u.role || '').toLowerCase() === 'admin').length
-    const disabled = users.filter((u) => u.status === 'disabled').length
-    return { total, admins, disabled }
+  const prioritizedUsers = useMemo(() => {
+    if (!ADMIN_ALLOWLIST.length) return users
+    const index = new Map(
+      users
+        .filter((entry) => (entry.email || '').trim().length > 0)
+        .map((entry) => [(entry.email || '').toLowerCase(), entry])
+    )
+    const hydrations = ADMIN_ALLOWLIST.map(({ original, normalized }) => {
+      const match = index.get(normalized)
+      if (match) {
+        return match
+      }
+      return {
+        id: `pending::${normalized}`,
+        email: original,
+        role: 'admin',
+        status: 'pending',
+        presence: 'offline',
+        placeholder: true,
+        allowlisted: true,
+        app_metadata: {},
+        user_metadata: {},
+      }
+    })
+    const remaining = users.filter((entry) => {
+      const email = (entry.email || '').toLowerCase()
+      return !ADMIN_ALLOWLIST.some(({ normalized }) => normalized === email)
+    })
+    return [...hydrations, ...remaining]
   }, [users])
 
+  const stats = useMemo(() => {
+    const total = prioritizedUsers.length
+    const admins = prioritizedUsers.filter((u) => (u.role || '').toLowerCase() === 'admin').length
+    const disabled = prioritizedUsers.filter((u) => u.status === 'disabled').length
+    return { total, admins, disabled }
+  }, [prioritizedUsers])
+
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
+    return prioritizedUsers.filter((u) => {
       const matchesSearch = search
         ? u.email?.toLowerCase().includes(search.toLowerCase()) || u.id?.includes(search)
         : true
@@ -67,12 +112,16 @@ export default function AdminUsers() {
       const matchesStatus = statusFilter === 'all' ? true : (u.status || 'active') === statusFilter
       return matchesSearch && matchesRole && matchesStatus
     })
-  }, [users, search, roleFilter, statusFilter])
+  }, [prioritizedUsers, search, roleFilter, statusFilter])
 
-  const handleRoleChange = async (userId, role) => {
-    setBusyUserId(userId)
+  const handleRoleChange = async (record, role) => {
+    if (record.placeholder) {
+      toast.error('This admin has not signed in yet.')
+      return
+    }
+    setBusyUserId(record.id)
     try {
-      const promise = updateAdminUser(userId, { role })
+      const promise = updateAdminUser(record.id, { role })
       toast.promise(promise, {
         loading: 'Updating role…',
         success: `Role set to ${role}`,
@@ -82,9 +131,9 @@ export default function AdminUsers() {
       emitAudit({
         action: 'user.update',
         targetType: 'user',
-        targetId: userId,
+        targetId: record.id,
         targetDisplay: updated.email,
-        before: users.find((u) => u.id === userId),
+        before: users.find((u) => u.id === record.id),
         after: updated,
         metadata: { role },
       })
@@ -95,6 +144,10 @@ export default function AdminUsers() {
   }
 
   const handleToggleDisabled = async (record) => {
+    if (record.placeholder) {
+      toast.error('Invite this admin before changing status.')
+      return
+    }
     setBusyUserId(record.id)
     const nextDisabled = record.status !== 'disabled'
     try {
@@ -121,6 +174,10 @@ export default function AdminUsers() {
   }
 
   const handleDelete = async (record) => {
+    if (record.placeholder) {
+      toast.error('Remove this email from the admin allowlist to delete it.')
+      return
+    }
     if (record.id === user?.id) {
       toast.error('You cannot remove your own account')
       return
@@ -201,12 +258,12 @@ export default function AdminUsers() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search email or id"
-              className="flex-1 rounded-2xl border border-slate-200 px-4 py-2"
+              className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-slate-900 placeholder:text-slate-500 caret-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="rounded-2xl border border-slate-200 px-4 py-2"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="all">All roles</option>
               {ROLE_OPTIONS.map((option) => (
@@ -216,7 +273,7 @@ export default function AdminUsers() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-2xl border border-slate-200 px-4 py-2"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="all">All states</option>
               <option value="active">Active</option>
@@ -252,12 +309,15 @@ export default function AdminUsers() {
                     <td className="py-4 pr-4">
                       <p className="font-semibold text-slate-900">{record.email}</p>
                       <p className="text-xs text-slate-400 font-mono">{record.id}</p>
+                      {record.placeholder && (
+                        <p className="text-xs text-amber-600">Pending activation</p>
+                      )}
                     </td>
                     <td className="py-4 pr-4">
                       <select
                         value={(record.role || 'viewer').toLowerCase()}
-                        onChange={(e) => handleRoleChange(record.id, e.target.value)}
-                        disabled={busyUserId === record.id}
+                        onChange={(e) => handleRoleChange(record, e.target.value)}
+                        disabled={busyUserId === record.id || record.placeholder}
                         className="rounded-xl border border-slate-200 px-3 py-1 text-sm"
                       >
                         {ROLE_OPTIONS.map((option) => (
@@ -266,15 +326,27 @@ export default function AdminUsers() {
                       </select>
                     </td>
                     <td className="py-4 pr-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          record.status === 'disabled'
-                            ? 'bg-rose-50 text-rose-600'
-                            : 'bg-emerald-50 text-emerald-600'
-                        }`}
-                      >
-                        {record.status === 'disabled' ? 'Disabled' : 'Active'}
-                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            record.presence === 'active'
+                              ? 'bg-emerald-50 text-emerald-600'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {record.presence === 'active' ? 'Active' : 'Offline'}
+                        </span>
+                        {record.status === 'disabled' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600">
+                            Disabled
+                          </span>
+                        )}
+                        {record.placeholder && (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-600">
+                            Awaiting signup
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 pr-4 text-sm text-slate-500">
                       {formatTimestamp(record.last_sign_in_at)}
@@ -282,14 +354,14 @@ export default function AdminUsers() {
                     <td className="py-4 pr-4 flex flex-wrap gap-2">
                       <button
                         onClick={() => handleToggleDisabled(record)}
-                        disabled={busyUserId === record.id}
+                        disabled={busyUserId === record.id || record.placeholder}
                         className="px-3 py-1 rounded-xl text-sm font-semibold bg-slate-900 text-white"
                       >
                         {record.status === 'disabled' ? 'Activate' : 'Disable'}
                       </button>
                       <button
                         onClick={() => handleDelete(record)}
-                        disabled={busyUserId === record.id || record.id === user?.id}
+                        disabled={busyUserId === record.id || record.id === user?.id || record.placeholder}
                         className="px-3 py-1 rounded-xl text-sm font-semibold border border-slate-200 text-slate-600"
                       >
                         Delete

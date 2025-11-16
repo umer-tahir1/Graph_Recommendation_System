@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchProducts, fetchGraphRecommendations, createInteraction } from '@/api'
 import { useAuth } from '@/contexts/AuthContext'
 import RecommendationCarousel from '@/components/user/RecommendationCarousel'
+import { useCart } from '@/contexts/CartContext'
 
 /** @typedef {import('@/types/api').Product} Product */
 /** @typedef {import('@/types/api').GraphRecommendationItem} GraphRecommendationItem */
@@ -16,9 +17,16 @@ const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: '
 export default function UserPortal() {
   const { user } = useAuth()
   const userId = user?.id
+  const displayName = useMemo(() => {
+    if (!user) return ''
+    const meta = user.user_metadata || {}
+    return meta.full_name?.trim() || meta.username?.trim() || user.email || ''
+  }, [user])
   const queryClient = useQueryClient()
   const [selectedProductId, setSelectedProductId] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
+  const [pendingCartProductId, setPendingCartProductId] = useState(null)
+  const { cartCount, openCart, addItem } = useCart()
 
   const catalogQuery = useQuery({
     queryKey: ['catalog'],
@@ -191,16 +199,47 @@ export default function UserPortal() {
     [interactionMutation, userId],
   )
 
+  const handleAddProductToCart = useCallback(
+    async (product) => {
+      if (!product) return
+      setPendingCartProductId(product.id)
+      try {
+        await addItem(product, 1)
+        toast.success(`${product.name} added to cart`)
+        handleInteraction('add_to_cart', product)
+      } catch (_error) {
+        // Errors are surfaced via cart context toasts
+      } finally {
+        setPendingCartProductId(null)
+      }
+    },
+    [addItem, handleInteraction],
+  )
+
   return (
-    <section className="min-h-screen bg-slate-950 text-white">
+    <section className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 py-12 space-y-10">
-        <header className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">User Portal</p>
-          <h1 className="text-4xl font-bold">Welcome back{user ? `, ${user.email}` : ''}</h1>
-          <p className="text-indigo-100 max-w-2xl">
-            Explore the full catalog, pick a product you love, and see graph-powered recommendations
-            tailored from your interactions.
-          </p>
+        <header className="space-y-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">User Portal</p>
+              <h1 className="text-4xl font-bold">Welcome back{displayName ? `, ${displayName}` : ''}</h1>
+              <p className="text-indigo-100 max-w-2xl">
+                Explore the full catalog, pick a product you love, and see graph-powered recommendations
+                tailored from your interactions.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={openCart}
+              className="inline-flex items-center gap-3 rounded-2xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10 transition"
+            >
+              <span>🛒 Cart</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-white/20 px-3 py-1 text-xs uppercase tracking-widest">
+                {cartCount}
+              </span>
+            </button>
+          </div>
         </header>
 
         <div className="grid gap-8 lg:grid-cols-[320px,1fr]">
@@ -236,7 +275,7 @@ export default function UserPortal() {
 
           <div className="space-y-6">
             {selectedProduct ? (
-              <div className="bg-white rounded-3xl text-slate-900 p-8 border border-slate-100 shadow-xl">
+              <div className="bg-white rounded-3xl text-slate-900 p-8 border border-slate-100 shadow-xl w-full max-w-4xl mx-auto">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -256,6 +295,23 @@ export default function UserPortal() {
                       </span>
                     )}
                   </div>
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAddProductToCart(selectedProduct)}
+                      className="rounded-2xl bg-slate-900 text-white px-5 py-3 font-semibold hover:bg-slate-800"
+                      disabled={pendingCartProductId === selectedProduct.id}
+                    >
+                      {pendingCartProductId === selectedProduct.id ? 'Adding…' : 'Add to Cart'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleInteraction('click', selectedProduct)}
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold text-slate-700"
+                    >
+                      Track Click
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -272,8 +328,8 @@ export default function UserPortal() {
                 activeProductId={selectedProductId}
                 onSelect={handleProductSelect}
                 onLike={(product) => handleInteraction('like', product)}
-                onAddToCart={(product) => handleInteraction('add_to_cart', product)}
-                pendingProductId={pendingAction?.productId}
+                onAddToCart={handleAddProductToCart}
+                pendingProductIds={[pendingAction?.productId, pendingCartProductId].filter(Boolean)}
                 emptyMessage="Graph recommendations will appear once you pick a product."
               />
             </div>
