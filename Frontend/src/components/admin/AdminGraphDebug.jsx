@@ -3,19 +3,28 @@ import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { fetchProducts, fetchGraphRecommendations } from '@/api'
 
+/** @typedef {import('@/types/api').Product} Product */
+/** @typedef {import('@/types/api').GraphRecommendationResponse} GraphRecommendationResponse */
+
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
 export default function AdminGraphDebug() {
   const [productId, setProductId] = useState(null)
 
-  const {
-    data: products = [],
-    isLoading: loadingProducts,
-  } = useQuery({
-    queryKey: ['catalog'],
-    queryFn: () => fetchProducts(),
-    onError: () => toast.error('Unable to load products for debug view'),
-  })
+    const catalogQuery = useQuery({
+      queryKey: ['catalog'],
+      queryFn: () => fetchProducts(),
+    })
+
+    useEffect(() => {
+      if (catalogQuery.error) {
+        toast.error('Unable to load products for debug view')
+      }
+    }, [catalogQuery.error])
+
+    /** @type {Product[]} */
+    const products = catalogQuery.data ?? []
+    const loadingProducts = catalogQuery.isLoading
 
   useEffect(() => {
     if (!products.length) {
@@ -27,16 +36,21 @@ export default function AdminGraphDebug() {
     }
   }, [products, productId])
 
-  const {
-    data: debugData,
-    isFetching,
-    refetch,
-  } = useQuery({
-    queryKey: ['graph-debug', productId],
-    queryFn: () => fetchGraphRecommendations({ productId, debug: true }),
-    enabled: Boolean(productId),
-    onError: () => toast.error('Unable to load graph diagnostics'),
-  })
+    const debugQuery = useQuery({
+      queryKey: ['graph-debug', productId],
+      queryFn: () => fetchGraphRecommendations({ productId, debug: true }),
+      enabled: Boolean(productId),
+    })
+
+    useEffect(() => {
+      if (debugQuery.error) {
+        toast.error('Unable to load graph diagnostics')
+      }
+    }, [debugQuery.error])
+
+    /** @type {GraphRecommendationResponse | undefined} */
+    const debugData = debugQuery.data
+    const { isFetching, refetch } = debugQuery
 
   const recommendationRows = debugData?.recommendations || []
   const pathEntries = useMemo(() => {

@@ -30,7 +30,7 @@ export default function RecommendationGraph({ data }) {
             size: 14,
             face: 'Tahoma'
           },
-          margin: 10,
+          margin: { top: 10, right: 10, bottom: 10, left: 10 },
           widthConstraint: {
             maximum: 150
           }
@@ -45,7 +45,9 @@ export default function RecommendationGraph({ data }) {
             to: { enabled: true, scaleFactor: 0.5 }
           },
           smooth: {
-            type: 'continuous'
+            enabled: true,
+            type: 'continuous',
+            roundness: 0.4
           }
         },
         interaction: {

@@ -3,13 +3,13 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 const navItems = [
-  { to: 'products', icon: '📦', label: 'Products' },
-  { to: 'categories', icon: '🗂️', label: 'Categories' },
-  { to: 'interactions', icon: '🔗', label: 'Interactions' },
-  { to: 'analytics', icon: '📊', label: 'Graph Analytics' },
-  { to: 'graph-debug', icon: '🧠', label: 'Graph Debug' },
-  { to: 'users', icon: '🧑‍💻', label: 'Supabase Users' },
-  { to: 'audit', icon: '🧾', label: 'Audit Logs' },
+  { to: '/admin/products', icon: '📦', label: 'Products' },
+  { to: '/admin/categories', icon: '🗂️', label: 'Categories' },
+  { to: '/admin/interactions', icon: '🔗', label: 'Interactions' },
+  { to: '/admin/analytics', icon: '📊', label: 'Graph Analytics' },
+  { to: '/admin/graph-debug', icon: '🧠', label: 'Graph Debug' },
+  { to: '/admin/users', icon: '🧑‍💻', label: 'Supabase Users' },
+  { to: '/admin/audit', icon: '🧾', label: 'Audit Logs' },
 ]
 
 export default function AdminSidebar() {

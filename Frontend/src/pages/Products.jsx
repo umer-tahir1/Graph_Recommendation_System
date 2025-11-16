@@ -74,7 +74,7 @@ export default function Products() {
     setReviews(productReviews)
     setLoadingGraph(false)
     if (activeUser) {
-      createInteraction({ user_id: activeUser.id, product_id: product.id, interaction_type: 'view', weight: 1 }).catch(() => null)
+      createInteraction({ userId: activeUser.id, productId: product.id, action: 'view', weight: 1 }).catch(() => null)
     }
   }
 
@@ -83,7 +83,7 @@ export default function Products() {
     await addToCart({ user_id: activeUser.id, product_id: product.id, quantity: 1 })
     const updated = await fetchCart(activeUser.id)
     setCartItems(updated)
-    await createInteraction({ user_id: activeUser.id, product_id: product.id, interaction_type: 'add_to_cart', weight: 1.5 })
+    await createInteraction({ userId: activeUser.id, productId: product.id, action: 'add_to_cart', weight: 1.5 })
   }
 
   const handleReviewSubmit = async () => {
@@ -97,7 +97,7 @@ export default function Products() {
     setReviewInput({ rating: 5, comment: '' })
     const refreshed = await fetchProductReviews(selectedProduct.id)
     setReviews(refreshed)
-    await createInteraction({ user_id: activeUser.id, product_id: selectedProduct.id, interaction_type: 'review', weight: 1.3 })
+    await createInteraction({ userId: activeUser.id, productId: selectedProduct.id, action: 'review', weight: 1.3 })
   }
 
   const totalCart = useMemo(() => cartItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0), [cartItems])
@@ -253,7 +253,7 @@ export default function Products() {
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => handleAddToCart(selectedProduct)} className="flex-1 bg-slate-900 text-white py-3 rounded-2xl font-semibold">Add to Cart</button>
-                      <button onClick={() => createInteraction({ user_id: activeUser?.id, product_id: selectedProduct.id, interaction_type: 'click', weight: 1.1 })} className="px-6 py-3 border border-slate-300 rounded-2xl font-semibold text-slate-700">Track Click</button>
+                      <button onClick={() => createInteraction({ userId: activeUser?.id ?? undefined, productId: selectedProduct.id, action: 'click', weight: 1.1 })} className="px-6 py-3 border border-slate-300 rounded-2xl font-semibold text-slate-700">Track Click</button>
                     </div>
                   </div>
 

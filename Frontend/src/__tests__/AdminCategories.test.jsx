@@ -22,12 +22,14 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 describe('AdminCategories', () => {
   beforeEach(() => {
-    fetchCategories.mockResolvedValue([
+    const mockedFetchCategories = vi.mocked(fetchCategories)
+    const mockedReorderCategories = vi.mocked(adminReorderCategories)
+    mockedFetchCategories.mockResolvedValue([
       { id: 1, name: 'Headphones', position: 1 },
       { id: 2, name: 'Mobiles', position: 2 },
       { id: 3, name: 'Laptops', position: 3 },
     ])
-    adminReorderCategories.mockResolvedValue([])
+    mockedReorderCategories.mockResolvedValue([])
   })
 
   it('sends reordered ids to API', async () => {

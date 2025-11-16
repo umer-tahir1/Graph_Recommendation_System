@@ -5,6 +5,12 @@ import { fetchProducts, fetchGraphRecommendations, createInteraction } from '@/a
 import { useAuth } from '@/contexts/AuthContext'
 import RecommendationCarousel from '@/components/user/RecommendationCarousel'
 
+/** @typedef {import('@/types/api').Product} Product */
+/** @typedef {import('@/types/api').GraphRecommendationItem} GraphRecommendationItem */
+/** @typedef {import('@/types/api').GraphRecommendationResponse} GraphRecommendationResponse */
+/** @typedef {import('@/types/api').InteractionAck} InteractionAck */
+/** @typedef {import('@/types/api').InteractionInput} InteractionInput */
+
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function UserPortal() {
@@ -14,14 +20,20 @@ export default function UserPortal() {
   const [selectedProductId, setSelectedProductId] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
 
-  const {
-    data: products = [],
-    isLoading: loadingProducts,
-  } = useQuery({
+  const catalogQuery = useQuery({
     queryKey: ['catalog'],
     queryFn: () => fetchProducts(),
-    onError: () => toast.error('Unable to load catalog'),
   })
+
+  useEffect(() => {
+    if (catalogQuery.error) {
+      toast.error('Unable to load catalog')
+    }
+  }, [catalogQuery.error])
+
+  /** @type {Product[]} */
+  const products = catalogQuery.data ?? []
+  const loadingProducts = catalogQuery.isLoading
 
   useEffect(() => {
     if (!products.length) {
@@ -63,16 +75,22 @@ export default function UserPortal() {
     [productLookup],
   )
 
-  const {
-    data: graphResponse,
-    isFetching: loadingRecommendations,
-  } = useQuery({
+  const graphQuery = useQuery({
     queryKey: graphQueryKey,
     queryFn: () => fetchGraphRecommendations({ productId: selectedProductId, userId, limit: 5 }),
     enabled: Boolean(userId && selectedProductId),
     placeholderData: (previousData) => previousData,
-    onError: () => toast.error('Unable to fetch recommendations'),
   })
+
+  useEffect(() => {
+    if (graphQuery.error) {
+      toast.error('Unable to fetch recommendations')
+    }
+  }, [graphQuery.error])
+
+  /** @type {GraphRecommendationResponse | undefined} */
+  const graphResponse = graphQuery.data
+  const loadingRecommendations = graphQuery.isFetching
 
   const recommendations = useMemo(
     () => hydrateRecommendationProducts(graphResponse?.recommendations || []),
@@ -99,56 +117,68 @@ export default function UserPortal() {
     [prefetchRecommendations],
   )
 
-  const interactionMutation = useMutation({
-    mutationFn: ({ productId, action }) =>
-      createInteraction({
-        productId,
-        userId,
-        action,
-        metadata: {
-          seed_product_id: selectedProductId,
-          surface: 'user-portal',
-        },
-      }),
-    onMutate: async (variables) => {
-      if (!variables?.productId) return undefined
-      setPendingAction({ productId: variables.productId, action: variables.action })
-      await queryClient.cancelQueries({ queryKey: graphQueryKey })
-      const previous = queryClient.getQueryData(graphQueryKey)
-      if (!previous) {
+  const interactionMutation = useMutation(
+    /** @type {import('@tanstack/react-query').UseMutationOptions<InteractionAck, Error, InteractionInput>} */ ({
+      mutationFn: (variables) => {
+        if (!variables?.productId) {
+          return Promise.reject(new Error('Product id is required'))
+        }
+        return createInteraction({
+          productId: variables.productId,
+          userId,
+          action: variables.action,
+          metadata: {
+            seed_product_id: selectedProductId,
+            surface: 'user-portal',
+          },
+        })
+      },
+      onMutate: async (variables) => {
+        if (!variables?.productId) return undefined
+        setPendingAction({ productId: variables.productId, action: variables.action })
+        await queryClient.cancelQueries({ queryKey: graphQueryKey })
+        const previous = /** @type {GraphRecommendationResponse | undefined} */ (
+          queryClient.getQueryData(graphQueryKey)
+        )
+        if (!previous) {
+          return { previous }
+        }
+        const optimistic = {
+          ...previous,
+          recommendations: (previous.recommendations || []).map((item) =>
+            item.id === variables.productId
+              ? { ...item, score: (item.score || 0) + (variables.action === 'add_to_cart' ? 0.2 : 0.1) }
+              : item,
+          ),
+        }
+        queryClient.setQueryData(graphQueryKey, optimistic)
         return { previous }
-      }
-      const optimistic = {
-        ...previous,
-        recommendations: (previous.recommendations || []).map((item) =>
-          item.id === variables.productId
-            ? { ...item, score: (item.score || 0) + (variables.action === 'add_to_cart' ? 0.2 : 0.1) }
-            : item,
-        ),
-      }
-      queryClient.setQueryData(graphQueryKey, optimistic)
-      return { previous }
-    },
-    onError: (_error, _variables, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(graphQueryKey, context.previous)
-      }
-      toast.error('Unable to record interaction')
-    },
-    onSuccess: (data) => {
-      if (data?.next_recommendations) {
-        queryClient.setQueryData(graphQueryKey, (prev) => ({
-          ...(prev || {}),
-          recommendations: data.next_recommendations,
-        }))
-      }
-      toast.success('Interaction logged')
-    },
-    onSettled: () => {
-      setPendingAction(null)
-      queryClient.invalidateQueries({ queryKey: graphQueryKey })
-    },
-  })
+      },
+      onError: (_error, _variables, context) => {
+        if (context?.previous) {
+          queryClient.setQueryData(graphQueryKey, context.previous)
+        }
+        toast.error('Unable to record interaction')
+      },
+      onSuccess: (data) => {
+        if (data?.next_recommendations?.length) {
+          queryClient.setQueryData(graphQueryKey, (prev) => {
+            const existing = /** @type {GraphRecommendationResponse | undefined} */ (prev)
+            if (!existing) return existing
+            return {
+              ...existing,
+              recommendations: data.next_recommendations || [],
+            }
+          })
+        }
+        toast.success('Interaction logged')
+      },
+      onSettled: () => {
+        setPendingAction(null)
+        queryClient.invalidateQueries({ queryKey: graphQueryKey })
+      },
+    })
+  )
 
   const handleInteraction = useCallback(
     (action, product) => {

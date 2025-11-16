@@ -1,5 +1,9 @@
 import axios from 'axios'
 
+/** @typedef {import('@/types/api').Product} Product */
+/** @typedef {import('@/types/api').GraphRecommendationResponse} GraphRecommendationResponse */
+/** @typedef {import('@/types/api').InteractionAck} InteractionAck */
+
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 let authToken = null
@@ -12,14 +16,35 @@ const client = axios.create({ baseURL: API })
 
 client.interceptors.request.use((config) => {
   if (authToken) {
-    config.headers = config.headers || {}
-    config.headers.Authorization = authToken
+    const headers = /** @type {import('axios').AxiosRequestHeaders} */ (config.headers ?? {})
+    headers.Authorization = authToken
+    config.headers = headers
   }
   return config
 })
 
+/**
+ * @template T
+ * @param {string} url
+ * @param {import('axios').AxiosRequestConfig} [config]
+ * @returns {Promise<T>}
+ */
 const get = (url, config) => client.get(url, config).then((r) => r.data)
+
+/**
+ * @template T
+ * @param {string} url
+ * @param {any} data
+ * @returns {Promise<T>}
+ */
 const post = (url, data) => client.post(url, data).then((r) => r.data)
+
+/**
+ * @template T
+ * @param {string} url
+ * @param {any} data
+ * @returns {Promise<T>}
+ */
 const put = (url, data) => client.put(url, data).then((r) => r.data)
 
 const cleanParams = (params = {}) => {
@@ -32,6 +57,11 @@ const cleanParams = (params = {}) => {
   return filtered
 }
 
+/**
+ * @param {string} [category]
+ * @param {string} [search]
+ * @returns {Promise<Product[]>}
+ */
 export function fetchProducts(category, search){
   const params = {}
   if (category) params.category = category
@@ -79,6 +109,10 @@ export function removeCartItem(itemId){
   return client.delete(`/cart/${itemId}`)
 }
 
+/**
+ * @param {Partial<import('@/types/api').InteractionInput>} [payload]
+ * @returns {Promise<InteractionAck>}
+ */
 export function createInteraction(payload = {}){
   if (!payload.productId && !payload.product_id) {
     throw new Error('productId is required to create an interaction')
@@ -148,6 +182,15 @@ export function emitClientAuditLog(entry){
   return post('/admin/audit', entry)
 }
 
+/**
+ * @param {{
+ *  productId?: number | null,
+ *  userId?: string | null,
+ *  limit?: number,
+ *  debug?: boolean
+ * }} [options]
+ * @returns {Promise<GraphRecommendationResponse>}
+ */
 export function fetchGraphRecommendations({ productId, userId, limit = 5, debug = false } = {}){
   const params = cleanParams({
     product_id: productId,

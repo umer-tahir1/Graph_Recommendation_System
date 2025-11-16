@@ -23,7 +23,8 @@ vi.mock('../components/RecommendationGraph', () => ({
 
 describe('AdminAnalytics', () => {
   it('renders graph stats and nodes', async () => {
-    fetchAdminGraphExport.mockResolvedValue({
+    const mockedFetchAdminGraphExport = vi.mocked(fetchAdminGraphExport)
+    mockedFetchAdminGraphExport.mockResolvedValue({
       totals: { users: 2, products: 2, interactions: 3 },
       top_products: [
         { product_id: 1, product_name: 'Aether Wave Pro', category: 'Headphones', interactions: 3, weight_sum: 4.2 },
