@@ -1,59 +1,70 @@
 import React, { useEffect, useRef } from 'react'
-import { Network } from 'vis-network'
 
 export default function RecommendationGraph({ data }) {
   const containerRef = useRef(null)
 
   useEffect(() => {
-    if (!containerRef.current || !data) return
+    let networkInstance
+    let isMounted = true
 
-    const options = {
-      physics: {
-        enabled: true,
-        stabilization: {
-          iterations: 200
+    const loadGraph = async () => {
+      if (!containerRef.current || !data) return
+      const { Network } = await import('vis-network')
+      if (!containerRef.current || !isMounted) return
+
+      const options = {
+        physics: {
+          enabled: true,
+          stabilization: {
+            iterations: 200
+          },
+          barnesHut: {
+            gravitationalConstant: -5000,
+            centralGravity: 0.3,
+            springLength: 200,
+            springConstant: 0.04
+          }
         },
-        barnesHut: {
-          gravitationalConstant: -5000,
-          centralGravity: 0.3,
-          springLength: 200,
-          springConstant: 0.04
+        nodes: {
+          font: {
+            size: 14,
+            face: 'Tahoma'
+          },
+          margin: 10,
+          widthConstraint: {
+            maximum: 150
+          }
+        },
+        edges: {
+          width: 2,
+          font: {
+            size: 12,
+            align: 'middle'
+          },
+          arrows: {
+            to: { enabled: true, scaleFactor: 0.5 }
+          },
+          smooth: {
+            type: 'continuous'
+          }
+        },
+        interaction: {
+          navigationButtons: true,
+          keyboard: true,
+          zoomView: true
         }
-      },
-      nodes: {
-        font: {
-          size: 14,
-          face: 'Tahoma'
-        },
-        margin: 10,
-        widthConstraint: {
-          maximum: 150
-        }
-      },
-      edges: {
-        width: 2,
-        font: {
-          size: 12,
-          align: 'middle'
-        },
-        arrows: {
-          to: { enabled: true, scaleFactor: 0.5 }
-        },
-        smooth: {
-          type: 'continuous'
-        }
-      },
-      interaction: {
-        navigationButtons: true,
-        keyboard: true,
-        zoomView: true
       }
+
+      networkInstance = new Network(containerRef.current, data, options)
     }
 
-    const network = new Network(containerRef.current, data, options)
+    loadGraph()
 
     return () => {
-      network.destroy()
+      isMounted = false
+      if (networkInstance) {
+        networkInstance.destroy()
+      }
     }
   }, [data])
 

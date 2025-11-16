@@ -1,49 +1,90 @@
 **Graph-Based Recommendation System**
 
-This workspace contains a prototype e-commerce recommendation system that demonstrates core DSA techniques applied to recommender design (graphs, traversal, hashing, priority queues, sorting, and collaborative filtering using Jaccard similarity).
+Production-style storefront that blends graph-driven recommendations, FastAPI services, and a React/Vite experience with dedicated user and admin portals.
 
-Structure:
-- `backend/` - FastAPI backend, SQLite DB, recommender algorithms, sample-data and tests
-- `frontend/` - Minimal React frontend stub to demo API calls
+## Repo Map
 
-Quick start (backend):
-1. Open a PowerShell terminal.
-2. (Optional) Create and activate a Python 3.10+ virtual environment:
+- `Backend/` – FastAPI app, SQLite schema, CRUD/data access, recommender logic, analytics endpoints, pytest suite.
+- `Frontend/` – React + Vite client with protected shopping experience, graph visualizations, and full admin workspace.
 
-```powershell
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-```
-
-3. Install backend dependencies:
+## Backend
 
 ```powershell
-cd backend
-pip install -r requirements.txt
-```
-
-4. Initialize the SQLite DB and populate small sample data:
-
-```powershell
-python -c "from app import sample_data; sample_data.populate_small()"
-```
-
-5. Run the API server:
-
-```powershell
+cd Backend
+python -m venv .venv; .\.venv\Scripts\Activate.ps1   # optional but recommended
+pip install -r Requirements.txt
+python -c "from app import sample_data; sample_data.populate_full()"   # seed baseline data
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-6. Try the main endpoints with your browser or `curl`:
-- `GET http://localhost:8000/`  (root)
-- `GET http://localhost:8000/users`
-- `GET http://localhost:8000/products`
-- `GET http://localhost:8000/recommend/1?k=5`
+Key endpoints
 
-Notes:
-- The recommender implements:
-	- Graph adjacency lists (user->products, product->users)
-	- BFS traversal on product graph for related items
-	- Hashing via Python `dict` and `set` for fast membership ops
-	- Priority queue (`heapq`) and sorting for top-K selection
-	- Collaborative filtering using Jaccard similarity
-- Tests are in `backend/tests` (run with `pytest backend/tests`).
+- `/products`, `/categories`, `/recommend/{user_id}` – shopper APIs used by the Products page.
+- `/graph/recommendations` – Supabase-protected weighted-graph recommendations with optional debug payloads.
+- `/interactions` – secure interaction logging that emits audit metadata and returns refreshed scores.
+- `/admin/products`, `/admin/categories`, `/admin/interactions`, `/admin/graph/export` – CRUD + analytics powering the admin portal.
+
+Tests
+
+```powershell
+cd Backend
+pytest tests
+```
+
+## Frontend
+
+```powershell
+cd Frontend
+npm install
+npm run dev     # http://localhost:3000
+npm run test:run
+```
+
+Highlights
+
+- **Protected shopping flow** – users authenticate via Supabase, browse curated categories, cart items, and visualize their recommendation graphs.
+- **Smart caching** – React Query caches per-product recommendations, supports optimistic likes/add-to-cart actions, and keeps UI responsive while FastAPI completes writes.
+- **Admin workspace** – `/admin/*` routes gated by `AdminRoute`, featuring sidebar navigation, CRUD modals, inline product editing, reorderable categories, live interaction feed, and graph analytics/dashboard views.
+- **Graph telemetry** – Admin analytics + the new graph debug panel surface interaction counts, weighted paths (Dijkstra), and top recommendations with live edge diagnostics.
+
+## Graph Recommendations API
+
+````powershell
+curl -H "Authorization: Bearer <SUPABASE_ACCESS_TOKEN>" ^
+		 "http://localhost:8000/graph/recommendations?product_id=101&k=5"
+````
+
+Response
+
+```json
+{
+	"product_id": 101,
+	"user_id": "13ff9ef2-...",
+	"requested_k": 5,
+	"generated_at": "2025-11-16T18:45:12Z",
+	"recommendations": [
+		{
+			"id": 108,
+			"name": "Vertex Mechanical Keyboard",
+			"category": "Accessories",
+			"price": 149.0,
+			"score": 1.82,
+			"distance": 0.9
+		}
+	],
+	"context": {
+		"totals": { "products": 42, "edges": 118, "interactions": 624 },
+		"popularity_leaders": [ { "id": 105, "name": "Helix Laptop", "score": 240 } ]
+	}
+}
+```
+
+Append `&debug=true` to include each recommendation’s shortest path + edge weights (admin-only). POST `/interactions` accepts `{ "product_id": 108, "action": "like" }`, stores the event, emits an audit log, and returns a short list of refreshed recommendations for optimistic UI updates.
+
+## Recommendation Stack
+
+- Bipartite graphs (user ↔ product) and adjacency maps for traversal.
+- Collaborative filtering via Jaccard similarity + weighted interactions.
+- Graph exports for visualization and admin telemetry.
+
+Feel free to extend the schema, tune the recommender, or plug in real authentication/commerce providers—the new structure is designed for incremental production-hardening.

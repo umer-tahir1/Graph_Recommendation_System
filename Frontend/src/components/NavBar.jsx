@@ -44,10 +44,18 @@ export default function NavBar() {
             {/* Right side - Login/Logout */}
             <div className="flex items-center">
               {user ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-white text-sm hidden sm:inline">
-                    {user.email}
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="text-white text-sm hidden sm:flex sm:flex-col sm:items-end">
+                    <span className="font-semibold">{user.email}</span>
+                    {isAdminUser && (
+                      <Link
+                        to="/admin"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-white/10 border border-white/30"
+                      >
+                        👑 Admin
+                      </Link>
+                    )}
+                  </div>
                   <button
                     onClick={handleLogout}
                     className="px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition font-semibold"

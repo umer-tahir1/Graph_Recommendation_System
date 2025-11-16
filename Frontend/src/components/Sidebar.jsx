@@ -8,7 +8,12 @@ export default function Sidebar() {
   const { user, isAdminUser, signOut } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => {
+    if (path.startsWith('/admin')) {
+      return location.pathname.startsWith('/admin')
+    }
+    return location.pathname === path
+  }
 
   const handleLogout = async () => {
     await signOut()
@@ -22,8 +27,12 @@ export default function Sidebar() {
     { path: '/contact', icon: '📧', label: 'Contact Us' },
   ]
 
+  if (user) {
+    menuItems.splice(2, 0, { path: '/portal', icon: '✨', label: 'User Portal' })
+  }
+
   if (isAdminUser) {
-    menuItems.push({ path: '/admin', icon: '👑', label: 'Admin Portal' })
+    menuItems.push({ path: '/admin/products', icon: '👑', label: 'Admin Portal' })
   }
 
   return (
@@ -100,7 +109,12 @@ export default function Sidebar() {
           {user && (
             <div className="px-3 py-3 border-t border-gray-200">
               <p className="text-xs text-gray-500 mb-1">Logged in as</p>
-              <p className="text-sm font-medium text-gray-800 truncate mb-2">{user.email}</p>
+              <p className="text-sm font-medium text-gray-800 truncate">{user.email}</p>
+              {isAdminUser && (
+                <span className="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 rounded-full px-2 py-1 mt-1">
+                  👑 Admin
+                </span>
+              )}
               <button
                 onClick={() => { handleLogout(); setIsOpen(false); }}
                 className="w-full px-3 py-2 bg-gray-100 text-gray-800 rounded-md font-semibold hover:bg-gray-200 transition text-sm"

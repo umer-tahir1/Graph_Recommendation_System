@@ -1,27 +1,33 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { userIsAdmin } from '../lib/supabase'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const returnPath = location.state?.from?.pathname
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const { error: signInError } = await signIn(email, password)
+    const { data, error: signInError } = await signIn(email, password)
 
     if (signInError) {
       setError(signInError.message)
       setLoading(false)
     } else {
-      navigate('/products')
+      const sessionUser = data?.session?.user
+      const fallback = userIsAdmin(sessionUser) ? '/admin' : '/products'
+      navigate(returnPath || fallback, { replace: true })
     }
   }
 

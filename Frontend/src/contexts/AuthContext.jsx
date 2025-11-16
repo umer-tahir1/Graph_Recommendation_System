@@ -1,7 +1,23 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { supabase, isAdmin } from '../lib/supabase'
+import { supabase, userIsAdmin } from '../lib/supabase'
+import { setApiAuthToken, emitClientAuditLog } from '@/api'
 
-const AuthContext = createContext({})
+/**
+ * @typedef {Object} AuthContextValue
+ * @property {import('@supabase/supabase-js').Session | null} session
+ * @property {import('@supabase/supabase-js').User | null} user
+ * @property {string | null} accessToken
+ * @property {boolean} loading
+ * @property {boolean} isAdminUser
+ * @property {(email: string, password: string) => Promise<any>} signUp
+ * @property {(email: string, password: string) => Promise<any>} signIn
+ * @property {() => Promise<{ error: import('@supabase/supabase-js').AuthError | null }>} signOut
+ * @property {(email: string) => Promise<any>} resetPassword
+ * @property {() => Promise<{ data: { session: import('@supabase/supabase-js').Session | null }; error: import('@supabase/supabase-js').AuthError | null }>} refreshSession
+ */
+
+/** @type {import('react').Context<AuthContextValue | null>} */
+const AuthContext = createContext(null)
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -12,26 +28,37 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
+  const [session, setSession] = useState(null)
   const [user, setUser] = useState(null)
+  const [accessToken, setAccessToken] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isAdminUser, setIsAdminUser] = useState(false)
 
+  const updateStateFromSession = (nextSession) => {
+    setSession(nextSession)
+    setUser(nextSession?.user ?? null)
+    setAccessToken(nextSession?.access_token ?? null)
+    setIsAdminUser(nextSession?.user ? userIsAdmin(nextSession.user) : false)
+    setApiAuthToken(nextSession?.access_token || null)
+    setLoading(false)
+  }
+
   useEffect(() => {
-    // Check active session
+    let isMounted = true
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setIsAdminUser(session?.user ? isAdmin(session.user.email) : false)
-      setLoading(false)
+      if (isMounted) {
+        updateStateFromSession(session)
+      }
     })
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setIsAdminUser(session?.user ? isAdmin(session.user.email) : false)
-      setLoading(false)
+      updateStateFromSession(session)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signUp = async (email, password) => {
@@ -42,6 +69,9 @@ export const AuthProvider = ({ children }) => {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     })
+    if (!error) {
+      updateStateFromSession(data.session)
+    }
     return { data, error }
   }
 
@@ -50,11 +80,17 @@ export const AuthProvider = ({ children }) => {
       email,
       password,
     })
+    if (!error) {
+      updateStateFromSession(data.session)
+    }
     return { data, error }
   }
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
+    if (!error) {
+      updateStateFromSession(null)
+    }
     return { error }
   }
 
@@ -65,14 +101,33 @@ export const AuthProvider = ({ children }) => {
     return { data, error }
   }
 
+  const refreshSession = async () => {
+    const { data, error } = await supabase.auth.refreshSession()
+    if (!error) {
+      updateStateFromSession(data.session)
+      const refreshedUser = data.session?.user
+      emitClientAuditLog({
+        action: 'session.refresh',
+        target_type: 'session',
+        target_id: refreshedUser?.id,
+        target_display: refreshedUser?.email,
+        metadata: { source: 'auth-context' },
+      }).catch(() => {})
+    }
+    return { data, error }
+  }
+
   const value = {
+    session,
     user,
+    accessToken,
     loading,
     isAdminUser,
     signUp,
     signIn,
     signOut,
     resetPassword,
+    refreshSession,
   }
 
   return (

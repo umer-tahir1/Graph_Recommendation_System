@@ -3,6 +3,15 @@ import { motion } from 'framer-motion'
 import Truck from '../assets/truck.svg?react'
 import Box from '../assets/box.svg?react'
 
+/**
+ * @typedef {import('framer-motion').Variants} Variants
+ * @typedef {import('framer-motion').TargetAndTransition} TargetAndTransition
+ * @typedef {import('framer-motion').Transition} MotionTransition
+ */
+
+const spring = (overrides = {}) => (/** @type {MotionTransition} */ ({ type: 'spring', ...overrides }))
+
+/** @type {Variants} */
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -11,15 +20,17 @@ const containerVariants = {
   }
 }
 
+/** @type {Variants} */
 const truckVariants = {
   hidden: { x: '-80%', rotate: -4 },
   visible: {
     x: 0,
     rotate: 0,
-    transition: { type: 'spring', stiffness: 60, damping: 12, delay: 0.2 }
+    transition: spring({ stiffness: 60, damping: 12, delay: 0.2 })
   }
 }
 
+/** @type {Variants} */
 const textVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
@@ -29,21 +40,23 @@ const textVariants = {
   }
 }
 
+/** @type {Variants} */
 const badgeVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: (delay = 0) => ({
+  visible: (delay = 0) => (/** @type {TargetAndTransition} */ ({
     opacity: 1,
     y: 0,
-    transition: { delay, type: 'spring', stiffness: 200, damping: 25 }
-  })
+    transition: spring({ delay, stiffness: 200, damping: 25 })
+  }))
 }
 
+/** @type {Variants} */
 const boxVariants = {
   hidden: { opacity: 0, scale: 0.6 },
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { type: 'spring', stiffness: 300, damping: 14 }
+    transition: spring({ stiffness: 300, damping: 14 })
   }
 }
 

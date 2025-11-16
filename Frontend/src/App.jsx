@@ -1,49 +1,85 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
-import Home from './pages/Home'
-import Products from './pages/Products'
-import About from './pages/About'
-import Contact from './pages/Contact'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import AdminPortal from './pages/AdminPortal'
+import AdminRoute from './components/AdminRoute'
+
+const Home = lazy(() => import('./pages/Home'))
+const Products = lazy(() => import('./pages/Products'))
+const About = lazy(() => import('./pages/About'))
+const Contact = lazy(() => import('./pages/Contact'))
+const Login = lazy(() => import('./pages/Login'))
+const Signup = lazy(() => import('./pages/Signup'))
+const AdminPortal = lazy(() => import('./pages/AdminPortal'))
+const UserPortal = lazy(() => import('./pages/UserPortal'))
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 export default function App() {
   return (
     <Router>
-      <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Sidebar />
-          <main className="w-full">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/auth/login" element={<Login />} />
-              <Route path="/auth/signup" element={<Signup />} />
-              <Route 
-                path="/products" 
-                element={
-                  <ProtectedRoute>
-                    <Products />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute>
-                    <AdminPortal />
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </main>
-        </div>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <div className="min-h-screen bg-gray-50">
+            <Sidebar />
+            <main className="w-full">
+              <Suspense fallback={<RouteLoading />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/auth/login" element={<Login />} />
+                  <Route path="/auth/signup" element={<Signup />} />
+                  <Route 
+                    path="/products" 
+                    element={
+                      <ProtectedRoute>
+                        <Products />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route
+                    path="/portal"
+                    element={
+                      <ProtectedRoute>
+                        <UserPortal />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route 
+                    path="/admin/*" 
+                    element={
+                      <AdminRoute>
+                        <AdminPortal />
+                      </AdminRoute>
+                    } 
+                  />
+                </Routes>
+              </Suspense>
+            </main>
+            <Toaster position="top-right" toastOptions={{ duration: 3200 }} />
+          </div>
+        </AuthProvider>
+      </QueryClientProvider>
     </Router>
+  )
+}
+
+function RouteLoading() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-100 text-gray-600">
+      <span className="text-xs uppercase tracking-[0.4em] text-indigo-400">Loading</span>
+      <p className="text-2xl font-semibold">Fetching experience…</p>
+    </div>
   )
 }
