@@ -10,6 +10,11 @@ export default function Sidebar() {
   const sidebarRef = useRef(null)
   const toggleRef = useRef(null)
 
+  // Hide global sidebar on Portal and Admin pages which have their own layouts
+  if (location.pathname.startsWith('/portal') || location.pathname.startsWith('/admin')) {
+    return null
+  }
+
   useEffect(() => {
     const handleOutside = (event) => {
       if (!isOpen) return

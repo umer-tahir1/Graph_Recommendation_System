@@ -1,8 +1,11 @@
 import os
 from functools import lru_cache
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+
+_BASE_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(_BASE_DIR / '.env')
 
 
 def _env_flag(name: str, default: bool = False) -> bool:

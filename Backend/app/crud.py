@@ -1,7 +1,13 @@
 import json
 import sqlite3
+from datetime import datetime
 from typing import List, Dict, Any, Optional, Sequence, Tuple
+
 from .db_init import DB_PATH
+
+
+def _current_timestamp() -> str:
+    return datetime.utcnow().isoformat(timespec='seconds')
 
 
 def get_conn(path: str | None = None):
@@ -13,10 +19,15 @@ def get_conn(path: str | None = None):
 
 # -------------------- Users -------------------- #
 
-def add_user(name: str, external_id: Optional[str] = None) -> int:
+def add_user(name: str, external_id: Optional[str] = None, *, email: Optional[str] = None, email_opt_in: Optional[bool] = None) -> int:
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute('INSERT INTO users (name, external_id) VALUES (?, ?)', (name, external_id))
+    opt_flag = 1 if email_opt_in else 0
+    opt_timestamp = _current_timestamp() if email_opt_in else None
+    cur.execute(
+        'INSERT INTO users (name, external_id, email, email_opt_in, email_opt_in_at) VALUES (?, ?, ?, ?, ?)',
+        (name, external_id, email, opt_flag, opt_timestamp)
+    )
     conn.commit()
     user_id = cur.lastrowid
     conn.close()
@@ -26,7 +37,7 @@ def add_user(name: str, external_id: Optional[str] = None) -> int:
 def list_users() -> List[Dict[str, Any]]:
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute('SELECT id, name, external_id FROM users ORDER BY id')
+    cur.execute('SELECT id, name, external_id, email, email_opt_in, email_opt_in_at FROM users ORDER BY id')
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -35,7 +46,7 @@ def list_users() -> List[Dict[str, Any]]:
 def get_user(user_id: int) -> Optional[Dict[str, Any]]:
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute('SELECT id, name, external_id FROM users WHERE id = ?', (user_id,))
+    cur.execute('SELECT id, name, external_id, email, email_opt_in, email_opt_in_at FROM users WHERE id = ?', (user_id,))
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -44,19 +55,96 @@ def get_user(user_id: int) -> Optional[Dict[str, Any]]:
 def get_user_by_external_id(external_id: str) -> Optional[Dict[str, Any]]:
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute('SELECT id, name, external_id FROM users WHERE external_id = ?', (external_id,))
+    cur.execute('SELECT id, name, external_id, email, email_opt_in, email_opt_in_at FROM users WHERE external_id = ?', (external_id,))
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
 
 
-def ensure_user_from_external(external_id: str, *, fallback_name: Optional[str] = None) -> Dict[str, Any]:
+def update_user_fields_by_external(
+    external_id: str,
+    *,
+    name: Optional[str] = None,
+    email: Optional[str] = None,
+    email_opt_in: Optional[bool] = None,
+) -> None:
+    clauses = []
+    params: List[Any] = []
+    if name is not None:
+        clauses.append('name = ?')
+        params.append(name)
+    if email is not None:
+        clauses.append('email = ?')
+        params.append(email)
+    if email_opt_in is not None:
+        clauses.append('email_opt_in = ?')
+        params.append(1 if email_opt_in else 0)
+        clauses.append('email_opt_in_at = ?')
+        params.append(_current_timestamp() if email_opt_in else None)
+    if not clauses:
+        return
+    params.append(external_id)
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(f"UPDATE users SET {', '.join(clauses)} WHERE external_id = ?", params)
+    conn.commit()
+    conn.close()
+
+
+def ensure_user_from_external(
+    external_id: str,
+    *,
+    fallback_name: Optional[str] = None,
+    email: Optional[str] = None,
+    email_opt_in: Optional[bool] = None,
+) -> Dict[str, Any]:
     existing = get_user_by_external_id(external_id)
     if existing:
+        updates = {}
+        if email and email != existing.get('email'):
+            updates['email'] = email
+        if email_opt_in is not None:
+            current_flag = bool(existing.get('email_opt_in'))
+            if current_flag != bool(email_opt_in):
+                updates['email_opt_in'] = email_opt_in
+        if updates:
+            update_user_fields_by_external(external_id, **updates)
+            existing = get_user_by_external_id(external_id) or existing
         return existing
+
     name = fallback_name or f'User {external_id[:8]}'
-    user_id = add_user(name, external_id=external_id)
-    return {'id': user_id, 'name': name, 'external_id': external_id}
+    user_id = add_user(name, external_id=external_id, email=email, email_opt_in=email_opt_in)
+    created = get_user(user_id)
+    return created or {'id': user_id, 'name': name, 'external_id': external_id, 'email': email, 'email_opt_in': int(bool(email_opt_in))}
+
+
+def update_user_opt_in(user_id: int, email_opt_in: bool) -> None:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        'UPDATE users SET email_opt_in = ?, email_opt_in_at = ? WHERE id = ?',
+        (1 if email_opt_in else 0, _current_timestamp() if email_opt_in else None, user_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def list_opted_in_users() -> List[Dict[str, Any]]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute('SELECT id, name, email, external_id FROM users WHERE email_opt_in = 1 AND email IS NOT NULL')
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_user_contact(user_id: int) -> Optional[Dict[str, Any]]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute('SELECT id, name, email, email_opt_in FROM users WHERE id = ?', (user_id,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
 
 
 # -------------------- Categories -------------------- #
@@ -105,6 +193,26 @@ def delete_category(category_id: int) -> None:
     cur.execute('DELETE FROM categories WHERE id = ?', (category_id,))
     conn.commit()
     conn.close()
+
+
+def user_category_overview() -> List[Dict[str, Any]]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        SELECT c.id, c.name, c.position,
+               COUNT(p.id) AS product_count,
+               MAX(CASE WHEN d.image_url IS NOT NULL AND d.image_url != '' THEN d.image_url END) AS hero_image
+        FROM categories c
+        LEFT JOIN products p ON LOWER(p.category) = LOWER(c.name)
+        LEFT JOIN product_details d ON d.product_id = p.id
+        GROUP BY c.id, c.name, c.position
+        ORDER BY c.position, c.name
+        '''
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 # -------------------- Products -------------------- #
@@ -187,6 +295,170 @@ def get_product(product_id: int) -> Optional[Dict[str, Any]]:
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+def list_product_sizes(product_id: int) -> List[Dict[str, Any]]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        'SELECT id, product_id, size, quantity FROM product_sizes WHERE product_id = ? ORDER BY size',
+        (product_id,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def replace_product_sizes(product_id: int, size_inventory: Dict[str, int]) -> None:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM product_sizes WHERE product_id = ?', (product_id,))
+    for size, quantity in size_inventory.items():
+        cur.execute(
+            'INSERT INTO product_sizes (product_id, size, quantity) VALUES (?, ?, ?)',
+            (product_id, size, quantity)
+        )
+    conn.commit()
+    conn.close()
+
+
+def category_product_highlights(category: str, limit: int = 50) -> List[Dict[str, Any]]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        SELECT p.id, p.name, p.category,
+               d.description, d.price, d.image_url, d.inventory,
+               IFNULL(rv.avg_rating, 0) AS average_rating,
+               IFNULL(rv.total_reviews, 0) AS total_reviews,
+               IFNULL(iv.total_interactions, 0) AS total_interactions
+        FROM products p
+        LEFT JOIN product_details d ON d.product_id = p.id
+        LEFT JOIN (
+            SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS total_reviews
+            FROM reviews
+            GROUP BY product_id
+        ) rv ON rv.product_id = p.id
+        LEFT JOIN (
+            SELECT product_id, COUNT(*) AS total_interactions
+            FROM interactions
+            GROUP BY product_id
+        ) iv ON iv.product_id = p.id
+        WHERE LOWER(p.category) = LOWER(?)
+        ORDER BY COALESCE(d.price, 0) DESC, p.name
+        LIMIT ?
+        ''',
+        (category, limit)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def product_review_summary(product_id: int) -> Dict[str, Any]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        'SELECT IFNULL(AVG(rating), 0) AS average_rating, COUNT(*) AS total_reviews FROM reviews WHERE product_id = ?',
+        (product_id,)
+    )
+    row = cur.fetchone() or {'average_rating': 0, 'total_reviews': 0}
+    conn.close()
+    return dict(row)
+
+
+def product_interaction_summary(product_id: int) -> Dict[str, Any]:
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN interaction_type = 'view' THEN 1 ELSE 0 END) AS views,
+            SUM(CASE WHEN interaction_type = 'like' THEN 1 ELSE 0 END) AS likes,
+            SUM(CASE WHEN interaction_type = 'add_to_cart' THEN 1 ELSE 0 END) AS adds,
+            MAX(timestamp) AS last_interaction_at
+        FROM interactions
+        WHERE product_id = ?
+        ''',
+        (product_id,)
+    )
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return {'total': 0, 'views': 0, 'likes': 0, 'adds': 0, 'last_interaction_at': None}
+    as_dict = dict(row)
+    for key in ('total', 'views', 'likes', 'adds'):
+        as_dict[key] = int(as_dict.get(key) or 0)
+    return as_dict
+
+
+def product_detail_payload(product_id: int) -> Optional[Dict[str, Any]]:
+    product = get_product(product_id)
+    if not product:
+        return None
+    sizes = list_product_sizes(product_id)
+    review_summary = product_review_summary(product_id)
+    reviews = list_reviews(product_id)
+    interactions = product_interaction_summary(product_id)
+    return {
+        'product': product,
+        'sizes': sizes,
+        'review_summary': review_summary,
+        'reviews': reviews,
+        'interaction_summary': interactions,
+    }
+
+
+def reserve_product_inventory(product_id: int, quantity: int, size: Optional[str] = None) -> Dict[str, Any]:
+    if quantity <= 0:
+        raise ValueError('quantity_must_be_positive')
+
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute('BEGIN IMMEDIATE')
+        cur.execute('SELECT inventory FROM product_details WHERE product_id = ?', (product_id,))
+        detail = cur.fetchone()
+        if not detail:
+            raise ValueError('product_not_found')
+        current_inventory = int(detail['inventory'] or 0)
+        if current_inventory < quantity:
+            raise ValueError('insufficient_inventory')
+
+        new_inventory = current_inventory - quantity
+        cur.execute('UPDATE product_details SET inventory = ? WHERE product_id = ?', (new_inventory, product_id))
+
+        size_record: Optional[Dict[str, Any]] = None
+        if size:
+            cur.execute('SELECT quantity FROM product_sizes WHERE product_id = ? AND size = ?', (product_id, size))
+            row = cur.fetchone()
+            if not row:
+                raise ValueError('size_not_found')
+            size_inventory = int(row['quantity'] or 0)
+            if size_inventory < quantity:
+                raise ValueError('insufficient_size_inventory')
+            updated_size_inventory = size_inventory - quantity
+            cur.execute(
+                'UPDATE product_sizes SET quantity = ? WHERE product_id = ? AND size = ?',
+                (updated_size_inventory, product_id, size)
+            )
+            size_record = {'size': size, 'quantity': updated_size_inventory}
+
+        cur.execute('SELECT size, quantity FROM product_sizes WHERE product_id = ? ORDER BY size', (product_id,))
+        sizes = [dict(row) for row in cur.fetchall()]
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    return {
+        'inventory': new_inventory,
+        'sizes': sizes,
+        'updated_size': size_record,
+    }
 
 
 # -------------------- Reviews -------------------- #

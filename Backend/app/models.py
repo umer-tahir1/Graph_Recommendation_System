@@ -5,6 +5,9 @@ from pydantic import BaseModel, Field
 class User(BaseModel):
     id: Optional[int] = None
     name: str
+    email: Optional[str] = None
+    email_opt_in: Optional[bool] = None
+    email_opt_in_at: Optional[str] = None
 
 
 class Category(BaseModel):
@@ -214,3 +217,84 @@ class AuthProfile(BaseModel):
     email: Optional[str] = None
     is_admin: bool
     roles: List[str] = Field(default_factory=list)
+
+
+class EmailPreference(BaseModel):
+    email_opt_in: bool
+
+
+class MarketingEmailRequest(BaseModel):
+    subject: str = Field(min_length=1)
+    content: str = Field(min_length=1)
+    user_ids: Optional[List[int]] = None
+
+
+class RecommendationEmailRequest(BaseModel):
+    user_ids: Optional[List[int]] = None
+    limit: int = Field(default=3, ge=1, le=10)
+
+
+class ProductSizeInfo(BaseModel):
+    size: str
+    quantity: int
+
+
+class ProductReviewSummary(BaseModel):
+    average_rating: float = 0.0
+    total_reviews: int = 0
+
+
+class ProductInteractionSummary(BaseModel):
+    total: int = 0
+    views: int = 0
+    likes: int = 0
+    adds: int = 0
+    last_interaction_at: Optional[str] = None
+
+
+class CategoryProductSummary(BaseModel):
+    id: int
+    name: str
+    category: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    image_url: Optional[str] = None
+    inventory: Optional[int] = None
+    average_rating: float = 0.0
+    total_reviews: int = 0
+    total_interactions: int = 0
+
+
+class CategoryListingResponse(BaseModel):
+    category: str
+    products: List[CategoryProductSummary]
+
+
+class ProductDetailPayload(BaseModel):
+    product: Product
+    sizes: List[ProductSizeInfo] = Field(default_factory=list)
+    review_summary: ProductReviewSummary
+    reviews: List[Review] = Field(default_factory=list)
+    interaction_summary: ProductInteractionSummary
+    graph: Optional[ProductGraph] = None
+
+
+class UserCategorySummary(BaseModel):
+    id: Optional[int] = None
+    name: str
+    slug: str
+    position: Optional[int] = None
+    product_count: int = 0
+    hero_image: Optional[str] = None
+
+
+class ProductReservationRequest(BaseModel):
+    quantity: int = Field(ge=1)
+    size: Optional[str] = None
+
+
+class ProductReservationResponse(BaseModel):
+    status: str = 'ok'
+    inventory: int
+    sizes: List[ProductSizeInfo]
+    updated_size: Optional[ProductSizeInfo] = None

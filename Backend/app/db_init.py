@@ -11,7 +11,10 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    external_id TEXT UNIQUE
+    external_id TEXT UNIQUE,
+    email TEXT,
+    email_opt_in INTEGER DEFAULT 0,
+    email_opt_in_at DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -32,6 +35,15 @@ CREATE TABLE IF NOT EXISTS product_details (
     price REAL DEFAULT 0,
     image_url TEXT,
     inventory INTEGER DEFAULT 0,
+    FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS product_sizes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    size TEXT NOT NULL,
+    quantity INTEGER DEFAULT 0,
+    UNIQUE(product_id, size),
     FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
@@ -85,6 +97,7 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON admin_audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_action ON admin_audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_product_sizes_product_id ON product_sizes(product_id);
 '''
 
 
@@ -100,7 +113,10 @@ def init_db(path=None):
         "ALTER TABLE interactions ADD COLUMN metadata TEXT",
         "ALTER TABLE interactions ADD COLUMN rating INTEGER DEFAULT 1",
         "ALTER TABLE categories ADD COLUMN position INTEGER DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN external_id TEXT"
+        "ALTER TABLE users ADD COLUMN external_id TEXT",
+        "ALTER TABLE users ADD COLUMN email TEXT",
+        "ALTER TABLE users ADD COLUMN email_opt_in INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN email_opt_in_at DATETIME"
     ]
     for stmt in alters:
         try:

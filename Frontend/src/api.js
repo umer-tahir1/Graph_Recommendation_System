@@ -122,6 +122,30 @@ export function removeCartItem(itemId, { currentUser = false } = {}){
   return client.delete(`/cart/${itemId}`)
 }
 
+export function fetchEmailPreference(){
+  return get('/me/email-preference')
+}
+
+export function updateEmailPreference(preference){
+  return put('/me/email-preference', preference)
+}
+
+export function fetchUserCategories(){
+  return get('/user/categories')
+}
+
+export function fetchUserCategoryListing(categorySlug, { limit = 60 } = {}){
+  return get(`/user/categories/${categorySlug}`, { params: { limit } })
+}
+
+export function fetchUserProductDetail(productId){
+  return get(`/user/products/${productId}/detail`)
+}
+
+export function reserveProductInventory(productId, payload){
+  return post(`/user/products/${productId}/reserve`, payload)
+}
+
 /**
  * @param {Partial<import('@/types/api').InteractionInput>} [payload]
  * @returns {Promise<InteractionAck>}
@@ -197,6 +221,14 @@ export function emitClientAuditLog(entry){
 
 export function fetchAuthProfile(){
   return get('/auth/profile')
+}
+
+export function adminSendMarketingEmail(payload){
+  return post('/admin/marketing/email', payload)
+}
+
+export function adminSendRecommendationEmails(payload){
+  return post('/admin/marketing/recommendations', payload)
 }
 
 /**

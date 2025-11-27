@@ -1,4 +1,5 @@
 import json
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -6,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from fastapi import FastAPI, HTTPException, Query, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import crud, recommender, db_init, supabase_admin
+from . import crud, recommender, db_init, supabase_admin, email_service
 from .auth import AdminAuthContext, UserAuthContext, require_admin, require_user, admin_error, ensure_not_self
 from .audit import emit_audit_event, emit_user_audit_event
 from .models import (
@@ -36,6 +37,18 @@ from .models import (
     GraphRecommendationItem,
     GraphRecommendationPath,
     AuthProfile,
+    EmailPreference,
+    MarketingEmailRequest,
+    RecommendationEmailRequest,
+    CategoryListingResponse,
+    CategoryProductSummary,
+    ProductDetailPayload,
+    ProductSizeInfo,
+    ProductReviewSummary,
+    ProductInteractionSummary,
+    ProductReservationRequest,
+    ProductReservationResponse,
+    UserCategorySummary,
 )
 from .product_graph import ProductGraph as WeightedProductGraph, Product as WeightedProduct
 
@@ -62,6 +75,41 @@ LEGACY_ACTION_MAP = {
     'click': 'view',
     'review': 'view',
 }
+
+CATEGORY_SLUG_ALIASES = {
+    'laptops': 'Laptops',
+    'phones': 'Mobiles',
+    'mobiles': 'Mobiles',
+    'apparel': 'Apparel',
+    'mugs': 'Mugs',
+    'home': 'Home Goods',
+    'home-goods': 'Home Goods',
+    'utensils': 'Kitchen & Utensils',
+    'kitchen': 'Kitchen & Utensils',
+}
+
+_SLUG_PATTERN = re.compile(r'[^a-z0-9]+')
+
+
+def _normalize_category_value(value: str) -> str:
+    return value.replace('&', 'and').replace('-', ' ').strip().lower()
+
+
+def _resolve_category_name(slug: str) -> str:
+    normalized = _normalize_category_value(slug)
+    if normalized in CATEGORY_SLUG_ALIASES:
+        return CATEGORY_SLUG_ALIASES[normalized]
+    for category in crud.list_categories():
+        if _normalize_category_value(category.get('name', '')) == normalized:
+            return category['name']
+    return slug.replace('-', ' ').title()
+
+
+def _category_slug(value: str) -> str:
+    normalized = _normalize_category_value(value)
+    slug = _SLUG_PATTERN.sub('-', normalized)
+    slug = slug.strip('-')
+    return slug or 'category'
 
 
 def _category_not_found(category_id: int):
@@ -309,6 +357,31 @@ def auth_profile(user_ctx: UserAuthContext = Depends(require_user)):
     )
 
 
+# -------------------- Email Preferences & Marketing -------------------- #
+
+
+@app.get('/me/email-preference', response_model=EmailPreference)
+def get_email_preference(user_ctx: UserAuthContext = Depends(require_user)):
+    internal_user = _resolve_internal_user(user_ctx, None)
+    return EmailPreference(email_opt_in=bool(internal_user.get('email_opt_in')))
+
+
+@app.put('/me/email-preference', response_model=EmailPreference)
+def update_email_preference(preference: EmailPreference, user_ctx: UserAuthContext = Depends(require_user)):
+    internal_user = _resolve_internal_user(user_ctx, None)
+    crud.update_user_opt_in(internal_user['id'], preference.email_opt_in)
+    updated = crud.get_user(internal_user['id']) or internal_user
+    emit_user_audit_event(
+        user_ctx,
+        action='email.opt_in' if preference.email_opt_in else 'email.opt_out',
+        target_type='user',
+        target_id=str(internal_user['id']),
+        target_display=updated.get('email') or updated.get('name') or f"user:{internal_user['id']}",
+        metadata={'email_opt_in': preference.email_opt_in},
+    )
+    return EmailPreference(email_opt_in=bool(updated.get('email_opt_in')))
+
+
 # -------------------- Categories -------------------- #
 
 @app.get('/categories', response_model=List[Category])
@@ -361,6 +434,111 @@ def reorder_categories(payload: CategoryOrder, admin: AdminAuthContext = Depends
         after=[cat.model_dump() for cat in after],
     )
     return after
+
+
+# -------------------- User Portal -------------------- #
+
+
+@app.get('/user/categories', response_model=List[UserCategorySummary])
+def user_category_overview(user_ctx: UserAuthContext = Depends(require_user)):
+    rows = crud.user_category_overview()
+    if not rows:
+        rows = [
+            {**cat, 'product_count': 0, 'hero_image': None}
+            for cat in crud.list_categories()
+        ]
+
+    summaries = [
+        UserCategorySummary(
+            id=row.get('id'),
+            name=row['name'],
+            slug=_category_slug(row['name']),
+            position=row.get('position'),
+            product_count=int(row.get('product_count') or 0),
+            hero_image=row.get('hero_image'),
+        )
+        for row in rows
+    ]
+    return summaries
+
+
+@app.get('/user/categories/{category_slug}', response_model=CategoryListingResponse)
+def user_category_products(
+    category_slug: str,
+    limit: int = Query(default=24, ge=1, le=60),
+    user_ctx: UserAuthContext = Depends(require_user),
+):
+    category_name = _resolve_category_name(category_slug)
+    rows = crud.category_product_highlights(category_name, limit=limit)
+    products = [CategoryProductSummary(**row) for row in rows]
+    return CategoryListingResponse(category=category_name, products=products)
+
+
+@app.get('/user/products/{product_id}/detail', response_model=ProductDetailPayload)
+def user_product_detail(product_id: int, user_ctx: UserAuthContext = Depends(require_user)):
+    payload = crud.product_detail_payload(product_id)
+    if not payload:
+        _product_not_found(product_id)
+
+    review_summary_raw = payload.get('review_summary') or {}
+    interaction_summary_raw = payload.get('interaction_summary') or {}
+
+    detail = ProductDetailPayload(
+        product=Product(**payload['product']),
+        sizes=[ProductSizeInfo(**{'size': row['size'], 'quantity': row['quantity']}) for row in payload.get('sizes', [])],
+        review_summary=ProductReviewSummary(
+            average_rating=float(review_summary_raw.get('average_rating') or 0.0),
+            total_reviews=int(review_summary_raw.get('total_reviews') or 0),
+        ),
+        reviews=[Review(**row) for row in payload.get('reviews', [])[:6]],
+        interaction_summary=ProductInteractionSummary(
+            total=int(interaction_summary_raw.get('total') or 0),
+            views=int(interaction_summary_raw.get('views') or 0),
+            likes=int(interaction_summary_raw.get('likes') or 0),
+            adds=int(interaction_summary_raw.get('adds') or 0),
+            last_interaction_at=interaction_summary_raw.get('last_interaction_at'),
+        ),
+        graph=_build_product_graph(product_id),
+    )
+    return detail
+
+
+@app.post('/user/products/{product_id}/reserve', response_model=ProductReservationResponse)
+def user_reserve_inventory(
+    product_id: int,
+    payload: ProductReservationRequest,
+    user_ctx: UserAuthContext = Depends(require_user),
+):
+    product = crud.get_product(product_id)
+    if not product:
+        _product_not_found(product_id)
+
+    size_value = payload.size.strip() if payload.size else None
+    try:
+        reservation = crud.reserve_product_inventory(product_id, payload.quantity, size=size_value)
+    except ValueError as exc:
+        message = str(exc)
+        if message == 'product_not_found':
+            _product_not_found(product_id)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
+
+    emit_user_audit_event(
+        user_ctx,
+        action='inventory.reserve',
+        target_type='product',
+        target_id=str(product_id),
+        target_display=product.get('name'),
+        metadata={'quantity': payload.quantity, 'size': size_value},
+    )
+
+    updated_size_payload = reservation.get('updated_size')
+    response = ProductReservationResponse(
+        status='ok',
+        inventory=reservation['inventory'],
+        sizes=[ProductSizeInfo(size=row['size'], quantity=row['quantity']) for row in reservation.get('sizes', [])],
+        updated_size=ProductSizeInfo(**updated_size_payload) if updated_size_payload else None,
+    )
+    return response
 
 
 # -------------------- Products -------------------- #
@@ -580,6 +758,45 @@ def admin_list_audit_logs(
     )
 
 
+@app.post('/admin/marketing/email')
+def admin_marketing_email(payload: MarketingEmailRequest, admin: AdminAuthContext = Depends(require_admin)):
+    summary = email_service.broadcast_marketing_email(
+        payload.subject,
+        payload.content,
+        target_user_ids=payload.user_ids,
+    )
+    emit_audit_event(
+        admin,
+        action='marketing.email',
+        target_type='user',
+        metadata={
+            'subject': payload.subject,
+            'target_user_ids': payload.user_ids,
+            **summary,
+        },
+    )
+    return {'status': 'ok', 'summary': summary}
+
+
+@app.post('/admin/marketing/recommendations')
+def admin_recommendation_emails(payload: RecommendationEmailRequest, admin: AdminAuthContext = Depends(require_admin)):
+    summary = email_service.broadcast_recommendation_email(
+        limit=payload.limit,
+        target_user_ids=payload.user_ids,
+    )
+    emit_audit_event(
+        admin,
+        action='marketing.email.recommendations',
+        target_type='user',
+        metadata={
+            'limit': payload.limit,
+            'target_user_ids': payload.user_ids,
+            **summary,
+        },
+    )
+    return {'status': 'ok', 'summary': summary}
+
+
 # -------------------- Reviews -------------------- #
 
 @app.post('/reviews', response_model=Review)
@@ -783,7 +1000,17 @@ def _build_product_graph(product_id: int) -> ProductGraph:
 
     for user in target_users:
         nodes.append(GraphNode(id=f'user:{user}', label=f'User {user}', group='user'))
-        edges.append(GraphEdge(id=f'edge:user:{user}:{product_id}', from_node=f'user:{user}', to_node=f'product:{product_id}', weight=1, label='view'))
+        edges.append(
+            GraphEdge(
+                id=f'edge:user:{user}:{product_id}',
+                **{
+                    'from': f'user:{user}',
+                    'to': f'product:{product_id}',
+                },
+                weight=1,
+                label='view',
+            )
+        )
 
     target_set = product_to_users.get(product_id, set())
     similarities = []
@@ -799,7 +1026,17 @@ def _build_product_graph(product_id: int) -> ProductGraph:
         if not other_prod:
             continue
         nodes.append(GraphNode(id=f'product:{other_id}', label=other_prod['name'], group='product', value=other_prod.get('price'), meta={'category': other_prod.get('category')}))
-        edges.append(GraphEdge(id=f'edge:product:{product_id}:{other_id}', from_node=f'product:{product_id}', to_node=f'product:{other_id}', weight=score, label=f'{score:.2f}'))
+        edges.append(
+            GraphEdge(
+                id=f'edge:product:{product_id}:{other_id}',
+                **{
+                    'from': f'product:{product_id}',
+                    'to': f'product:{other_id}',
+                },
+                weight=score,
+                label=f'{score:.2f}',
+            )
+        )
 
     graph = ProductGraph(nodes=[n for n in nodes], edges=[e for e in edges])
     return graph

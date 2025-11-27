@@ -7,6 +7,7 @@ const navItems = [
   { to: '/admin/categories', icon: '🗂️', label: 'Categories' },
   { to: '/admin/interactions', icon: '🔗', label: 'Interactions' },
   { to: '/admin/analytics', icon: '📊', label: 'Graph Analytics' },
+  { to: '/admin/marketing', icon: '✉️', label: 'Marketing Emails' },
   { to: '/admin/graph-debug', icon: '🧠', label: 'Graph Debug' },
   { to: '/admin/users', icon: '🧑‍💻', label: 'Supabase Users' },
   { to: '/admin/audit', icon: '🧾', label: 'Audit Logs' },

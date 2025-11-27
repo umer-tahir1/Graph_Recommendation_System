@@ -1,10 +1,11 @@
 import React from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import AdminSidebar from './AdminSidebar'
 
 export default function AdminLayout() {
   const { user } = useAuth()
+  const location = useLocation()
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -18,7 +19,7 @@ export default function AdminLayout() {
               <h1 className="text-4xl font-bold text-white">Admin Workspace</h1>
               <p className="text-slate-300">Orchestrating experiences for {user?.email}</p>
             </header>
-            <Outlet />
+            <Outlet key={location.pathname} />
           </div>
         </div>
       </div>
