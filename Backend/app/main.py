@@ -54,6 +54,8 @@ from .product_graph import ProductGraph as WeightedProductGraph, Product as Weig
 
 
 app = FastAPI(title='Graph-Based Recommendation API')
+
+# Added Middlware endpoints
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
@@ -76,6 +78,7 @@ LEGACY_ACTION_MAP = {
     'review': 'view',
 }
 
+# Categories
 CATEGORY_SLUG_ALIASES = {
     'laptops': 'Laptops',
     'phones': 'Mobiles',
@@ -611,7 +614,7 @@ def remove_product(product_id: int, admin: AdminAuthContext = Depends(require_ad
     return {'status': 'ok'}
 
 
-# -------------------- Admin: Interactions & Graphs -------------------- #
+# Admin: Interactions & Graphs
 
 @app.get('/admin/interactions', response_model=List[InteractionRecord])
 def admin_interactions(limit: int = Query(default=200, ge=10, le=1000), admin: AdminAuthContext = Depends(require_admin)):
