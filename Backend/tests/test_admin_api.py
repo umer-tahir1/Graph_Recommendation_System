@@ -36,7 +36,7 @@ def client(tmp_path, monkeypatch):
 def seed_category(name: str):
     return crud.upsert_category(name)
 
-
+# Seed categories specifies
 def seed_product(category: str):
     payload = {
         'name': 'Test Device',
@@ -48,7 +48,7 @@ def seed_product(category: str):
     }
     return crud.add_product(payload), payload
 
-
+# Crud Operations check
 def test_admin_product_crud_flow(client):
     cat_id = seed_category('Headphones')
     assert cat_id > 0
@@ -82,7 +82,7 @@ def test_admin_product_crud_flow(client):
     assert 'product.update' in actions
     assert 'product.delete' in actions
 
-
+# Reordering operation check
 def test_category_reorder(client):
     ids = [seed_category(name) for name in ['Headphones', 'Mobiles', 'Computers']]
     cats_before = client.get('/categories').json()
@@ -96,7 +96,7 @@ def test_category_reorder(client):
     audit_payload = client.get('/admin/audit').json()
     assert any(entry['action'] == 'category.reorder' for entry in audit_payload['items'])
 
-
+# Graph endpoints check
 def test_admin_graph_endpoints(client):
     seed_category('Headphones')
     pid, payload = seed_product('Headphones')
@@ -131,7 +131,7 @@ def test_email_preference_flow(client):
     assert refreshed.status_code == 200
     assert refreshed.json()['email_opt_in'] is True
 
-
+# email endpoints check
 def test_admin_marketing_email_broadcast(client, monkeypatch):
     alice_id = crud.add_user('Alice', email='alice@example.com', email_opt_in=True)
     captured = {}
@@ -157,7 +157,7 @@ def test_admin_marketing_email_broadcast(client, monkeypatch):
     audit_payload = client.get('/admin/audit').json()
     assert any(entry['action'] == 'marketing.email' for entry in audit_payload['items'])
 
-
+# test_admin_recommendation_email_broadcast check
 def test_admin_recommendation_email_broadcast(client, monkeypatch):
     seed_category('Accessories')
     pid_anchor = crud.add_product({
@@ -218,7 +218,7 @@ def test_admin_recommendation_email_broadcast(client, monkeypatch):
     audit_payload = client.get('/admin/audit').json()
     assert any(entry['action'] == 'marketing.email.recommendations' for entry in audit_payload['items'])
 
-
+# Portal Flow check
 def test_user_portal_category_and_detail_flow(client):
     head_cat = seed_category('Headphones')
     assert head_cat > 0
