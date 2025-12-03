@@ -64,20 +64,19 @@ def recommend_by_collab(user_id: int, interactions: List[Dict[str, int]], top_k:
     return top
 
 
-def build_product_graph(product_to_users: Dict[int, Set[int]]) -> Dict[int, Set[int]]:
-    # Build product graph: connect products that share at least one user
-    prod_graph: Dict[int, Set[int]] = defaultdict(set)
+def build_product_graph(product_to_users:Dict[int, Set[int]]) ->Dict[int, Set[int]]:
+
+    prod_graph:Dict[int,Set[int]] = defaultdict(set)
     products = list(product_to_users.keys())
-    for p in products:
-        users = product_to_users[p]
-        for u in users:
-            # for all other products that user purchased, add edge
-            for q in product_to_users:
-                if q == p:
+    for pr in products:
+        users = product_to_users[pr]
+        for us in users:
+            for qr in product_to_users:
+                if qr == pr:
                     continue
-                if u in product_to_users[q]:
-                    prod_graph[p].add(q)
-    return prod_graph
+                if us in product_to_users[qr]:
+                    prod_graph[pr].add(qr)
+return prod_graph
 
 
 def bfs_related_products(start_prod: int, product_graph: Dict[int, Set[int]], max_depth: int = 2) -> List[int]:
