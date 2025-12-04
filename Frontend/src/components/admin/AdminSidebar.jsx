@@ -3,14 +3,19 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
 const navItems = [
-  { to: '/admin/products', icon: '📦', label: 'Products' },
-  { to: '/admin/categories', icon: '🗂️', label: 'Categories' },
-  { to: '/admin/interactions', icon: '🔗', label: 'Interactions' },
-  { to: '/admin/analytics', icon: '📊', label: 'Graph Analytics' },
-  { to: '/admin/marketing', icon: '✉️', label: 'Marketing Emails' },
-  { to: '/admin/graph-debug', icon: '🧠', label: 'Graph Debug' },
-  { to: '/admin/users', icon: '🧑‍💻', label: 'Supabase Users' },
-  { to: '/admin/audit', icon: '🧾', label: 'Audit Logs' },
+  { to: '/admin/products', icon: '◆', label: 'Products' },
+  { to: '/admin/categories', icon: '▦', label: 'Categories' },
+  { to: '/admin/interactions', icon: '⚡', label: 'Interactions' },
+  { to: '/admin/analytics', icon: '◈', label: 'Graph Analytics' },
+  { to: '/admin/marketing', icon: '✦', label: 'Marketing Emails' },
+  { to: '/admin/graph-debug', icon: '◉', label: 'Graph Debug' },
+  { to: '/admin/users', icon: '◐', label: 'Supabase Users' },
+  { to: '/admin/audit', icon: '◎', label: 'Audit Logs' },
+]
+
+const quickLinks = [
+  { to: '/portal', icon: '◫', label: 'User Portal' },
+  { to: '/', icon: '◧', label: 'Main Homepage' },
 ]
 
 export default function AdminSidebar() {
@@ -23,7 +28,7 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className="bg-slate-900/80 border-r border-slate-800 text-slate-200 flex flex-col">
+    <aside className="bg-[#030712] border-r border-slate-800 text-slate-200 flex flex-col">
       <div className="px-6 py-8 border-b border-slate-800">
         <p className="text-sm uppercase tracking-[0.4em] text-indigo-400">Admin</p>
         <h1 className="text-2xl font-bold mt-2">Control Panel</h1>
@@ -47,6 +52,20 @@ export default function AdminSidebar() {
             <span>{item.label}</span>
           </NavLink>
         ))}
+        
+        <div className="pt-4 mt-4 border-t border-slate-700">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500 px-4 mb-2">Quick Links</p>
+          {quickLinks.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+            >
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
       </nav>
       <div className="px-6 space-y-4 border-t border-slate-800 py-6">
         <div className="rounded-2xl bg-slate-800/70 border border-slate-700 p-4 text-sm">

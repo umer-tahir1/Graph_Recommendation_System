@@ -80,7 +80,7 @@ const HeroAnimation = () => (
         className="space-y-8"
       >
         <motion.span variants={textVariants} className="inline-block px-4 py-1 rounded-full border border-white/20 text-sm uppercase tracking-[0.3em] text-indigo-200">
-          LogiCommerce
+          NovaMart
         </motion.span>
         <motion.h1 variants={textVariants} className="text-4xl lg:text-6xl font-extrabold leading-tight">
           Your store. Your goods.
@@ -91,20 +91,27 @@ const HeroAnimation = () => (
         </motion.p>
 
         <motion.div variants={textVariants} className="flex flex-wrap gap-4">
-          <button className="px-8 py-3 bg-indigo-500 hover:bg-indigo-400 transition rounded-xl font-semibold shadow-lg shadow-indigo-500/30">
+          <button
+            className="px-8 py-3 bg-indigo-500 hover:bg-indigo-400 transition rounded-xl font-semibold shadow-lg shadow-indigo-500/30"
+            onClick={() => window.location.href = '/portal'}
+          >
             Launch Storefront
-          </button>
-          <button className="px-8 py-3 bg-white/10 hover:bg-white/20 transition rounded-xl font-semibold">
-            Watch Demo
           </button>
         </motion.div>
 
         <div className="grid grid-cols-2 gap-6 pt-4">
-          {["45% faster dispatch", "Live inventory lanes", "AI route insights", "Zero-touch tracking"].map((item, idx) => (
-            <motion.div key={item} custom={0.2 * idx} variants={badgeVariants} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur">
-              <p className="text-sm text-slate-300">{item}</p>
-            </motion.div>
-          ))}
+          <motion.a href="/contact" custom={0} variants={badgeVariants} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur hover:bg-white/10 transition cursor-pointer">
+            <p className="text-sm text-slate-300">Contact Us</p>
+          </motion.a>
+          <motion.a href="/about" custom={0.2} variants={badgeVariants} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur hover:bg-white/10 transition cursor-pointer">
+            <p className="text-sm text-slate-300">About</p>
+          </motion.a>
+          <motion.a href="/faq" custom={0.4} variants={badgeVariants} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur hover:bg-white/10 transition cursor-pointer">
+            <p className="text-sm text-slate-300">FAQ</p>
+          </motion.a>
+          <motion.a href="/blogs" custom={0.6} variants={badgeVariants} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur hover:bg-white/10 transition cursor-pointer">
+            <p className="text-sm text-slate-300">Blogs</p>
+          </motion.a>
         </div>
       </motion.div>
 
@@ -113,16 +120,15 @@ const HeroAnimation = () => (
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative flex flex-col items-center gap-6"
+        className="relative flex flex-col items-center justify-center gap-6"
       >
-        <div className="relative rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 p-10 shadow-[0_35px_120px_rgba(15,23,42,0.9)]">
+        <div className="relative rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 p-10 shadow-[0_35px_120px_rgba(15,23,42,0.9)] flex items-center justify-center" style={{ minHeight: '370px' }}>
           <motion.div
             variants={truckVariants}
-            className="relative"
+            className="relative flex items-center justify-center"
           >
             <div className="absolute -top-8 -right-10 w-40 h-40 bg-indigo-500/30 blur-3xl" />
-            <Truck className="w-full h-56 drop-shadow-[0_20px_80px_rgba(99,102,241,0.45)]" />
-
+            <Truck className="w-full h-[320px] max-w-[480px] mx-auto drop-shadow-[0_20px_80px_rgba(99,102,241,0.45)]" />
             <motion.div
               variants={containerVariants}
               className="absolute top-10 left-1/2 -translate-x-1/2 flex gap-3"
@@ -134,30 +140,7 @@ const HeroAnimation = () => (
               ))}
             </motion.div>
           </motion.div>
-
-          <motion.div
-            custom={0.4}
-            variants={badgeVariants}
-            className="mt-10 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-6 py-4 backdrop-blur"
-          >
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Live Fleet</p>
-              <p className="text-2xl font-bold">128 vehicles</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-400">Avg. arrival</p>
-              <p className="text-xl text-emerald-300 font-semibold">23 min</p>
-            </div>
-          </motion.div>
         </div>
-
-        <motion.div
-          custom={0.6}
-          variants={badgeVariants}
-          className="bg-indigo-500 text-white px-8 py-3 rounded-full shadow-2xl shadow-indigo-500/40"
-        >
-          Delivering premium goods now
-        </motion.div>
       </motion.div>
     </div>
   </section>

@@ -67,7 +67,7 @@ export default function ProductCard({
           {image ? (
             <img src={image} alt={product.name} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-2xl" aria-hidden>🛒</span>
+            <span className="text-2xl" aria-hidden>◆</span>
           )}
         </div>
         <div className="text-left">
@@ -87,8 +87,8 @@ export default function ProductCard({
 
       {(onLike || onAddToCart) && (
         <div className="flex gap-2 pt-1">
-          {onLike && renderActionButton('👍 Like', onLike, 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')}
-          {onAddToCart && renderActionButton('🛒 Add', onAddToCart, 'bg-indigo-600 text-white hover:bg-indigo-500')}
+          {onLike && renderActionButton('◇ Like', onLike, 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100')}
+          {onAddToCart && renderActionButton('◆ Add', onAddToCart, 'bg-indigo-600 text-white hover:bg-indigo-500')}
         </div>
       )}
     </div>

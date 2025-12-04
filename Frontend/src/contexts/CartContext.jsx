@@ -7,6 +7,7 @@ const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
   const { user } = useAuth()
+  const navigate = window && window.location ? (path) => { window.location.href = path } : () => {}
   const userId = user?.id
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -65,6 +66,7 @@ export function CartProvider({ children }) {
     async (product, quantity = 1) => {
       if (!userId) {
         toast.error('Sign in to add items to your cart')
+        navigate('/auth/login')
         return
       }
       if (!product?.id) {
@@ -74,7 +76,11 @@ export function CartProvider({ children }) {
       setSyncing(true)
       try {
         await apiAddToCart({ product_id: product.id, quantity })
-        return await refresh()
+        await refresh()
+        // Force update after add to cart
+        setTimeout(() => {
+          refresh()
+        }, 100)
       } catch (error) {
         toast.error('Unable to add to cart')
         throw error

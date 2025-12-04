@@ -8,6 +8,8 @@ export default function Contact() {
     message: ''
   })
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
 
   const handleChange = (e) => {
     setFormData({
@@ -16,15 +18,30 @@ export default function Contact() {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Here you would typically send the data to your backend
-    console.log('Form submitted:', formData)
-    setSubmitted(true)
-    setTimeout(() => {
-      setSubmitted(false)
-      setFormData({ name: '', email: '', subject: '', message: '' })
-    }, 3000)
+    setSending(true)
+    setError('')
+    try {
+      const res = await fetch('http://localhost:8000/contact_message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      const data = await res.json()
+      if (res.ok && data.status === 'sent') {
+        setSubmitted(true)
+        setTimeout(() => {
+          setSubmitted(false)
+          setFormData({ name: '', email: '', subject: '', message: '' })
+        }, 3000)
+      } else {
+        setError(data.errors ? data.errors.join(', ') : 'Failed to send message.')
+      }
+    } catch (err) {
+      setError('Network error. Please try again later.')
+    }
+    setSending(false)
   }
 
   return (
@@ -48,7 +65,7 @@ export default function Contact() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4 pb-4">
           {[{
             title: 'Email Us',
-            icon: '📧',
+            icon: '✦',
             subtitle: 'Our team replies within a day',
             action: (
               <a href="mailto:support@grs.com" className="text-indigo-300 font-semibold hover:text-white transition-colors">
@@ -57,7 +74,7 @@ export default function Contact() {
             )
           }, {
             title: 'Call Us',
-            icon: '📞',
+            icon: '◈',
             subtitle: 'Mon–Fri · 8am - 5pm',
             action: (
               <a href="tel:+1234567890" className="text-indigo-300 font-semibold hover:text-white transition-colors">
@@ -66,7 +83,7 @@ export default function Contact() {
             )
           }, {
             title: 'Visit Us',
-            icon: '📍',
+            icon: '◆',
             subtitle: 'Drop by our HQ',
             action: (
               <p className="text-slate-200 leading-relaxed">
@@ -99,6 +116,13 @@ export default function Contact() {
             <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-400/40 rounded-2xl text-emerald-200 font-semibold flex items-center gap-2">
               <span>✓</span>
               <span>Thanks! Your message is on its way.</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-400/40 rounded-2xl text-red-200 font-semibold flex items-center gap-2">
+              <span>✖</span>
+              <span>{error}</span>
             </div>
           )}
 
@@ -172,8 +196,9 @@ export default function Contact() {
             <button
               type="submit"
               className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-indigo-500 hover:bg-indigo-400 font-semibold text-white transition shadow-lg shadow-indigo-500/30"
+              disabled={sending}
             >
-              Send Message
+              {sending ? 'Sending...' : 'Send Message'}
             </button>
           </form>
         </div>

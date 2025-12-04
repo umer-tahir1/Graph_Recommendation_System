@@ -13,6 +13,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   const returnPath = location.state?.from?.pathname
+  const needsEmailPreference = location.state?.needsEmailPreference
+  const showBackLink = needsEmailPreference && returnPath
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,8 +34,27 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.4),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(236,72,153,0.25),transparent_40%)]" />
+      </div>
+      <div className="max-w-md w-full relative z-10">
+        {showBackLink && (
+          <div className="mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-indigo-300 hover:text-indigo-100 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span className="font-semibold">Back to Portal</span>
+            </button>
+          </div>
+        )}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-800 mb-2">Welcome Back</h1>

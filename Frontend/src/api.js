@@ -19,6 +19,9 @@ client.interceptors.request.use((config) => {
     const headers = /** @type {import('axios').AxiosRequestHeaders} */ (config.headers ?? {})
     headers.Authorization = authToken
     config.headers = headers
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[API] Sending Authorization:', authToken)
+    }
   }
   return config
 })
@@ -165,6 +168,14 @@ export function createInteraction(payload = {}){
     body.action = payload.interaction_type || 'view'
   }
   return post('/interactions', body)
+}
+
+export function fetchProductAnalytics(productId){
+  return get(`/products/${productId}/analytics`)
+}
+
+export function recordProductView(productId){
+  return createInteraction({ productId, action: 'view' })
 }
 
 export function adminCreateProduct(product){

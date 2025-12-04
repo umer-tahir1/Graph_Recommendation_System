@@ -103,9 +103,13 @@ export default function Products() {
   const totalCart = useMemo(() => cartItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0), [cartItems])
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-[#030712] relative overflow-hidden">
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.4),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(236,72,153,0.25),transparent_40%)]" />
+      </div>
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/40 via-purple-600/30 to-rose-500/20 blur-3xl" />
         <div className="relative max-w-7xl mx-auto px-4 py-16">
           <span className="text-sm uppercase tracking-[0.3em] text-indigo-200">Graph Native Commerce</span>
           <h1 className="text-white text-4xl lg:text-6xl font-bold mt-4 mb-4">Products tailored to your graph.</h1>
@@ -280,7 +284,7 @@ export default function Products() {
                         <div key={review.id} className="bg-white rounded-2xl p-3 border border-slate-100">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-slate-900">User {review.user_id}</span>
-                            <span className="text-sm text-amber-500 font-semibold">{review.rating}★</span>
+                            <span className="text-sm text-amber-500 font-semibold">{review.rating}✦</span>
                           </div>
                           <p className="text-slate-600 text-sm mt-2">{review.comment}</p>
                         </div>

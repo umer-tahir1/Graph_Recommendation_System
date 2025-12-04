@@ -52,8 +52,16 @@ export default function RecommendationGraph({ data }) {
         },
         interaction: {
           navigationButtons: true,
-          keyboard: true,
-          zoomView: true
+          keyboard: {
+            enabled: true,
+            bindToWindow: false
+          },
+          zoomView: true,
+          zoomSpeed: 0.3,
+          hover: true,
+          tooltipDelay: 100,
+          hideEdgesOnDrag: false,
+          hideEdgesOnZoom: false
         }
       }
 

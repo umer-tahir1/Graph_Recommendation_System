@@ -68,8 +68,8 @@ export default function UserProductDetailPanel({
               {product.image_url ? (
                 <img src={product.image_url} alt={product.name} className="h-64 w-full object-cover" />
               ) : (
-                <div className="flex h-64 items-center justify-center text-5xl text-slate-500" aria-hidden>
-                  📦
+                <div className="flex h-full w-full items-center justify-center text-6xl text-slate-600">
+                  ◆
                 </div>
               )}
             </div>
@@ -153,14 +153,14 @@ export default function UserProductDetailPanel({
                   onClick={onLike}
                   className="rounded-2xl border border-emerald-400/40 bg-emerald-500/20 px-4 py-3 text-sm font-semibold text-emerald-200"
                 >
-                  👍 Like
+                  ◇ Like
                 </button>
                 <button
                   type="button"
                   onClick={onTrackView}
                   className="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm font-semibold text-white"
                 >
-                  👁️ Log view
+                  ◉ Log view
                 </button>
               </div>
             </div>

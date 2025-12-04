@@ -15,6 +15,7 @@ const Products = lazy(() => import('./pages/Products'))
 const About = lazy(() => import('./pages/About'))
 const Contact = lazy(() => import('./pages/Contact'))
 const FAQ = lazy(() => import('./pages/FAQ'))
+const Blogs = lazy(() => import('./pages/Blogs'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Login = lazy(() => import('./pages/Login'))
 const Signup = lazy(() => import('./pages/Signup'))
@@ -28,7 +29,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 0,
       refetchOnWindowFocus: false,
-      refetchOnMount: true,
+      refetchOnMount: false,
       retry: 1,
     },
   },
@@ -50,17 +51,11 @@ export default function App() {
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/faq" element={<FAQ />} />
+                    <Route path="/blogs" element={<Blogs />} />
                     <Route path="/auth/login" element={<Login />} />
                     <Route path="/auth/signup" element={<Signup />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
-                    <Route 
-                      path="/products" 
-                      element={
-                        <ProtectedRoute>
-                          <Products />
-                        </ProtectedRoute>
-                      } 
-                    />
+                    {/* Products page removed */}
                     <Route 
                       path="/settings" 
                       element={
@@ -71,11 +66,7 @@ export default function App() {
                     />
                       <Route
                         path="/portal/*"
-                        element={
-                          <ProtectedRoute>
-                            <UserPortal />
-                          </ProtectedRoute>
-                        }
+                        element={<UserPortal />}
                       />
                       <Route
                         path="/checkout"

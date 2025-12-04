@@ -1,4 +1,5 @@
-import React from 'react'
+
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '@/contexts/CartContext'
 
@@ -14,7 +15,14 @@ export default function CartDrawer() {
     removeItem,
     loading,
     syncing,
+    refresh,
   } = useCart()
+
+  useEffect(() => {
+    if (isOpen) {
+      refresh()
+    }
+  }, [isOpen, refresh])
 
   if (!isOpen) {
     return null
@@ -49,13 +57,13 @@ export default function CartDrawer() {
             className="text-slate-400 hover:text-white transition"
             onClick={closeCart}
           >
-            ✕
+            
           </button>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {loading ? (
-            <p className="text-slate-300">Loading your cart…</p>
+            <p className="text-slate-300">Loading your cart</p>
           ) : items.length === 0 ? (
             <div className="text-slate-300 bg-white/5 border border-white/10 rounded-2xl p-6">
               Your cart is empty. Keep browsing and add something you love.

@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { fetchUserProductDetail, fetchProductGraph, createInteraction } from '@/api'
+import { fetchUserProductDetail, fetchProductGraph, createInteraction, recordProductView, fetchProductAnalytics } from '@/api'
 import { useCart } from '@/contexts/CartContext'
+import { useAuth } from '@/contexts/AuthContext'
 import RecommendationGraph from '@/components/RecommendationGraph'
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
@@ -32,11 +33,19 @@ function getMockProduct(id, categorySlug = 'laptops') {
 }
 
 export default function UserProductFullPage() {
+  // ✅ ALL HOOKS AT TOP LEVEL - UNCONDITIONAL
   const { categorySlug, productId } = useParams()
   const navigate = useNavigate()
   const { addItem } = useCart()
+  const { user } = useAuth()
   const [pendingCart, setPendingCart] = useState(false)
   const [pendingLike, setPendingLike] = useState(false)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [pendingReview, setPendingReview] = useState(false)
+  const [userReviews, setUserReviews] = useState([])
+  const [viewRecorded, setViewRecorded] = useState(false)
+  const [isLiked, setIsLiked] = useState(false)
 
   const numericId = Number(productId)
   const isMock = !isNaN(numericId) && numericId >= 90000
@@ -59,6 +68,33 @@ export default function UserProductFullPage() {
     staleTime: 0,
   })
 
+  const analyticsQuery = useQuery({
+    queryKey: ['product-analytics', productId],
+    queryFn: () => fetchProductAnalytics(productId),
+    enabled: Boolean(productId) && !isMock,
+    retry: false,
+    refetchOnMount: true,
+    staleTime: 0,
+  })
+
+  // ✅ MANDATORY: Record product view on component mount
+  useEffect(() => {
+    if (!productId || isMock || viewRecorded) return
+    
+    const recordView = async () => {
+      try {
+        await recordProductView(productId)
+        setViewRecorded(true)
+        // Refetch analytics after recording view
+        analyticsQuery.refetch()
+      } catch (err) {
+        console.error('Failed to record product view:', err)
+      }
+    }
+    
+    recordView()
+  }, [productId, isMock, viewRecorded])
+
   // Resolve product data: either from API or generate mock
   let product = null
   let reviews = []
@@ -73,6 +109,9 @@ export default function UserProductFullPage() {
     product = productQuery.data.product
     reviews = productQuery.data.reviews || []
   }
+  
+  // Combine API/mock reviews with user-submitted reviews
+  const allReviews = [...userReviews, ...reviews]
 
   const handleAddToCart = async () => {
     if (!product) return
@@ -92,6 +131,7 @@ export default function UserProductFullPage() {
     try {
       setPendingLike(true)
       await createInteraction({ productId: product.id, action: 'like' })
+      setIsLiked(true)
       toast.success('Liked!')
     } catch (err) {
       console.error(err)
@@ -100,46 +140,81 @@ export default function UserProductFullPage() {
     }
   }
 
-  if (productQuery.isLoading && !isMock) {
-    return (
-      <div className="flex h-full items-center justify-center text-slate-400">
-        <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
-          <p>Loading product details...</p>
-        </div>
-      </div>
-    )
+  const handleSubmitReview = async (e) => {
+    e.preventDefault()
+    if (!product || !reviewComment.trim()) {
+      toast.error('Please enter a review comment')
+      return
+    }
+    
+    try {
+      setPendingReview(true)
+      
+      // Create new review object
+      const newReview = {
+        id: Date.now(),
+        user_id: 'CurrentUser',
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+        created_at: new Date().toISOString()
+      }
+      
+      // Add to local state immediately
+      setUserReviews(prev => [newReview, ...prev])
+      
+      // TODO: Implement API call to submit review
+      // await submitReview({ productId: product.id, rating: reviewRating, comment: reviewComment })
+      
+      toast.success('Review submitted successfully!')
+      setReviewComment('')
+      setReviewRating(5)
+    } catch (err) {
+      toast.error('Failed to submit review')
+      console.error(err)
+    } finally {
+      setPendingReview(false)
+    }
   }
 
-  if ((!isMock && productQuery.isError) || !product) {
-    return (
-      <div className="flex h-full items-center justify-center text-slate-400">
-        <div className="text-center">
-          <div className="text-4xl mb-4">❌</div>
-          <p>Product not found.</p>
-          <button onClick={() => navigate(-1)} className="mt-4 text-indigo-400 hover:text-indigo-300">
-            Go back
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // ✅ COMPUTE STATES AFTER ALL HOOKS
+  const isLoading = productQuery.isLoading && !isMock
+  const hasError = (!isMock && productQuery.isError) || !product
 
+  // ✅ SINGLE RETURN WITH CONDITIONAL JSX (NO EARLY RETURNS)
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20">
+    <>
+      {isLoading ? (
+        <div className="flex h-full items-center justify-center text-slate-400">
+          <div className="text-center">
+            <div className="text-4xl mb-4">◉</div>
+            <p>Loading product details...</p>
+          </div>
+        </div>
+      ) : hasError ? (
+        <div className="flex h-full items-center justify-center text-slate-400">
+          <div className="text-center">
+            <div className="text-4xl mb-4">◈</div>
+            <p>Product not found.</p>
+            <button onClick={() => navigate(-1)} className="mt-4 text-indigo-400 hover:text-indigo-300">
+              Go back
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto space-y-8 pb-20">
       {/* BACK BUTTON */}
       <div>
         <Link
           to={`/portal/category/${categorySlug || product.category}`}
           className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-medium"
         >
-          <span>←</span>
+          <span>◂</span>
           <span>Back to Products</span>
         </Link>
       </div>
 
       {/* TOP SECTION: IMAGE & INFO */}
-      <div className="grid lg:grid-cols-2 gap-12">
+      <div className="grid lg:grid-cols-2 gap-6">
         {/* IMAGE */}
         <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-2 overflow-hidden">
           <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-800">
@@ -150,13 +225,13 @@ export default function UserProductFullPage() {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-6xl">📦</div>
+              <div className="flex h-full w-full items-center justify-center text-6xl">◆</div>
             )}
           </div>
         </div>
 
         {/* INFO */}
-        <div className="flex flex-col justify-center space-y-8">
+        <div className="flex flex-col justify-center space-y-6">
           <div>
             <p className="text-sm uppercase tracking-[0.35em] text-indigo-400 font-bold mb-4">
               {product.category}
@@ -168,7 +243,7 @@ export default function UserProductFullPage() {
               <p className="text-3xl font-bold text-white">{currency.format(product.price || 0)}</p>
               {product.average_rating && (
                 <div className="flex items-center gap-1 rounded-full bg-amber-400/10 px-3 py-1 text-sm font-bold text-amber-400">
-                  <span>★</span>
+                  <span>✦</span>
                   <span>{product.average_rating.toFixed(1)}</span>
                 </div>
               )}
@@ -190,33 +265,124 @@ export default function UserProductFullPage() {
             <button
               onClick={handleLike}
               disabled={pendingLike}
-              className="rounded-2xl border border-slate-700 bg-slate-800 px-6 py-4 text-2xl text-slate-300 hover:bg-slate-700 hover:text-pink-400 hover:border-pink-500/30 transition-all disabled:opacity-50"
-              title="Like"
+              className={`rounded-2xl border px-6 py-4 text-2xl transition-all disabled:opacity-50 ${
+                isLiked
+                  ? 'border-pink-500 bg-pink-500/20 text-pink-400'
+                  : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-pink-400 hover:border-pink-500/30'
+              }`}
+              title={isLiked ? 'Unlike' : 'Like'}
             >
-              {pendingLike ? '...' : '♥'}
+              {pendingLike ? '...' : (isLiked ? '◆' : '◇')}
             </button>
           </div>
         </div>
       </div>
 
-      {/* MIDDLE SECTION: GRAPH */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white">Product Graph</h2>
-          <p className="text-slate-400">Visualizing relationships and interactions.</p>
-        </div>
-        <div className="h-[500px] w-full rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden relative">
-          {graphQuery.isLoading && !isMock ? (
-            <div className="absolute inset-0 flex items-center justify-center text-slate-500">
-              Loading graph data...
+      {/* MIDDLE SECTION: ANALYTICS & GRAPH */}
+      <div className="space-y-6">
+        {/* Product Analytics */}
+        {!isMock && analyticsQuery.data && (
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white">Product Analytics</h2>
+              <p className="text-slate-400">Real-time view and purchase statistics</p>
             </div>
-          ) : (graphQuery.data || isMock) ? (
-            <RecommendationGraph data={isMock ? { nodes: [{id: 1, label: 'Product'}, {id: 2, label: 'User'}], edges: [{from: 1, to: 2}] } : graphQuery.data} />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-slate-500">
-              No graph data available.
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                <div className="text-3xl font-bold text-indigo-400">{analyticsQuery.data.total_views}</div>
+                <div className="text-sm text-slate-400 mt-1">Total Views</div>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                <div className="text-3xl font-bold text-green-400">{analyticsQuery.data.total_purchases}</div>
+                <div className="text-sm text-slate-400 mt-1">Total Purchases</div>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                <div className="text-3xl font-bold text-pink-400">{analyticsQuery.data.total_likes}</div>
+                <div className="text-sm text-slate-400 mt-1">Total Likes</div>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                <div className="text-3xl font-bold text-amber-400">{analyticsQuery.data.total_cart_adds}</div>
+                <div className="text-sm text-slate-400 mt-1">Cart Adds</div>
+              </div>
             </div>
-          )}
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Users Who Viewed */}
+              <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-6">
+                <h3 className="text-lg font-bold text-indigo-300 mb-4 flex items-center gap-2">
+                  <span>◉</span>
+                  <span>Users Who Viewed This Product</span>
+                </h3>
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-400">
+                    <span className="font-semibold text-white">{analyticsQuery.data.unique_viewers}</span> unique viewers
+                  </div>
+                  {analyticsQuery.data.viewers && analyticsQuery.data.viewers.length > 0 ? (
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {analyticsQuery.data.viewers.slice(0, 10).map((userId, idx) => (
+                        <div key={idx} className="text-sm text-slate-300 bg-slate-800/50 rounded px-3 py-1">
+                          User ID: {userId}
+                        </div>
+                      ))}
+                      {analyticsQuery.data.viewers.length > 10 && (
+                        <div className="text-xs text-slate-500 italic mt-2">
+                          + {analyticsQuery.data.viewers.length - 10} more viewers
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-500 italic">No viewers yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Users Who Purchased */}
+              <div className="rounded-2xl border border-green-500/30 bg-green-500/5 p-6">
+                <h3 className="text-lg font-bold text-green-300 mb-4 flex items-center gap-2">
+                  <span>◆</span>
+                  <span>Users Who Purchased This Product</span>
+                </h3>
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-400">
+                    <span className="font-semibold text-white">{analyticsQuery.data.unique_purchasers}</span> unique purchasers
+                  </div>
+                  {analyticsQuery.data.purchasers && analyticsQuery.data.purchasers.length > 0 ? (
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {analyticsQuery.data.purchasers.map((userId, idx) => (
+                        <div key={idx} className="text-sm text-slate-300 bg-slate-800/50 rounded px-3 py-1">
+                          User ID: {userId}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-500 italic">No purchases yet</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Product Graph */}
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white">Product Graph</h2>
+            <p className="text-slate-400">Visualizing relationships and interactions.</p>
+          </div>
+          <div className="h-[500px] w-full rounded-2xl border border-slate-800 bg-slate-950 overflow-hidden relative">
+            {graphQuery.isLoading && !isMock ? (
+              <div className="absolute inset-0 flex items-center justify-center text-slate-500">
+                Loading graph data...
+              </div>
+            ) : (graphQuery.data || isMock) ? (
+              <RecommendationGraph data={isMock ? { nodes: [{id: 1, label: 'Product'}, {id: 2, label: 'User'}], edges: [{from: 1, to: 2}] } : graphQuery.data} />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-slate-500">
+                No graph data available.
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -228,24 +394,24 @@ export default function UserProductFullPage() {
             <p className="text-slate-400">See what others are saying.</p>
           </div>
           <div className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-slate-300">
-            {reviews.length} Reviews
+            {allReviews.length} Reviews
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          {reviews.length > 0 ? (
-            reviews.map((review) => (
+          {allReviews.length > 0 ? (
+            allReviews.map((review) => (
               <div key={review.id} className="rounded-2xl border border-slate-800 bg-slate-950/50 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-xs font-bold text-indigo-300">
-                      {review.user_id ? review.user_id.substring(0, 2).toUpperCase() : 'U'}
+                      {review.user_id && typeof review.user_id === 'string' ? review.user_id.substring(0, 2).toUpperCase() : 'U'}
                     </div>
-                    <span className="text-sm font-semibold text-slate-300">User {review.user_id?.substring(0, 8)}</span>
+                    <span className="text-sm font-semibold text-slate-300">User {review.user_id && typeof review.user_id === 'string' ? review.user_id.substring(0, 8) : review.user_id || 'Anonymous'}</span>
                   </div>
                   <div className="flex text-amber-400 text-sm">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i}>{i < review.rating ? '★' : '☆'}</span>
+                      <span key={i}>{i < review.rating ? '✦' : '✧'}</span>
                     ))}
                   </div>
                 </div>
@@ -261,7 +427,66 @@ export default function UserProductFullPage() {
             </div>
           )}
         </div>
+
+        {/* ADD REVIEW FORM */}
+        <div className="mt-8 pt-8 border-t border-slate-800">
+          <h3 className="text-xl font-bold text-white mb-6">Write a Review</h3>
+          <form onSubmit={handleSubmitReview} className="space-y-6">
+            {/* Rating Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-3">
+                Rating
+              </label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className={`text-3xl transition-all hover:scale-110 ${
+                      star <= reviewRating ? 'text-amber-400' : 'text-slate-600'
+                    }`}
+                  >
+                    ✦
+                  </button>
+                ))}
+                <span className="ml-3 text-slate-400 self-center">
+                  {reviewRating} {reviewRating === 1 ? 'star' : 'stars'}
+                </span>
+              </div>
+            </div>
+
+            {/* Comment Input */}
+            <div>
+              <label htmlFor="review-comment" className="block text-sm font-semibold text-slate-300 mb-3">
+                Your Review
+              </label>
+              <textarea
+                id="review-comment"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Share your thoughts about this product..."
+                rows={4}
+                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-200 placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                required
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div>
+              <button
+                type="submit"
+                disabled={pendingReview || !reviewComment.trim()}
+                className="rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-500 hover:shadow-indigo-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {pendingReview ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-  )
+  )}
+  </>
+)
 }

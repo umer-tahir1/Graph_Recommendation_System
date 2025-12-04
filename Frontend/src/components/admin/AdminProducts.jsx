@@ -198,7 +198,7 @@ export default function AdminProducts() {
                         {product.image_url ? (
                           <img src={product.image_url} alt={product.name} className="w-14 h-14 rounded-2xl object-cover" />
                         ) : (
-                          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">🖼️</div>
+                          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">◇</div>
                         )}
                         <div>
                           <p className="font-semibold text-slate-900">{product.name}</p>

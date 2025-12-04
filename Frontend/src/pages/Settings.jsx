@@ -20,8 +20,15 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937] py-16 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.4),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(236,72,153,0.25),transparent_40%)]" />
+      </div>
+      
+      <div className="relative z-10 py-16 px-4">
+        <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Settings</h1>
           <p className="text-slate-400">Manage your account preferences and settings</p>
@@ -106,13 +113,17 @@ export default function Settings() {
               Sign Out
             </button>
             <button
-              onClick={() => toast.info('Password reset link sent to your email')}
+              onClick={() => toast.success('Password reset link sent to your email')}
               className="w-full px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-2xl transition text-left"
             >
               Reset Password
             </button>
             <button
-              onClick={() => toast.error('Account deletion requires email confirmation')}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                  toast.error('Account deletion requires email confirmation')
+                }
+              }}
               className="w-full px-6 py-3 bg-red-900/30 hover:bg-red-900/50 text-red-400 font-semibold rounded-2xl transition text-left border border-red-800"
             >
               Delete Account
@@ -120,6 +131,7 @@ export default function Settings() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }

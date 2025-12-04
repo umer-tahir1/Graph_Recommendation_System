@@ -344,7 +344,7 @@ def category_product_highlights(category: str, limit: int = 50) -> List[Dict[str
             FROM interactions
             GROUP BY product_id
         ) iv ON iv.product_id = p.id
-        WHERE LOWER(p.category) = LOWER(?)
+        WHERE p.category = ?
         ORDER BY COALESCE(d.price, 0) DESC, p.name
         LIMIT ?
         ''',

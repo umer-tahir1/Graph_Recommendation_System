@@ -36,12 +36,12 @@ export default function About() {
   ]
 
   return (
-    <section className="relative min-h-screen bg-slate-950 text-white overflow-hidden">
+    <section className="relative min-h-screen bg-[#030712] text-white overflow-hidden">
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.25),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.4),transparent_45%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(236,72,153,0.25),transparent_40%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-indigo-900/50 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-indigo-900/60 to-transparent" />
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
@@ -56,7 +56,7 @@ export default function About() {
         <div className="space-y-8">
           <section className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur">
             <p className="text-xs uppercase tracking-[0.3em] text-indigo-200">Mission</p>
-            <h2 className="text-3xl font-bold mt-3 mb-4">🎯 Our mission</h2>
+            <h2 className="text-3xl font-bold mt-3 mb-4">◈ Our mission</h2>
             <p className="text-slate-200 leading-relaxed text-lg">
               Build a premium shopping surface powered by graph signals so every customer can discover, evaluate, and act on the right product with confidence.
             </p>
@@ -64,7 +64,7 @@ export default function About() {
 
           <section className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur">
             <p className="text-xs uppercase tracking-[0.3em] text-indigo-200">Team</p>
-            <h2 className="text-3xl font-bold mt-3 mb-4">👥 Who we are</h2>
+            <h2 className="text-3xl font-bold mt-3 mb-4">◎ Who we are</h2>
             <p className="text-slate-200 leading-relaxed text-lg mb-4">
               A cross-functional crew of merchandisers, graph engineers, and storytellers who obsess over translating catalog data into memorable experiences.
             </p>
@@ -75,7 +75,7 @@ export default function About() {
 
           <section className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur">
             <p className="text-xs uppercase tracking-[0.3em] text-indigo-200">Why choose us</p>
-            <h2 className="text-3xl font-bold mt-3 mb-6">✨ Product promises</h2>
+            <h2 className="text-3xl font-bold mt-3 mb-6">✦ Product promises</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {gridHighlights.map(({ title, description, accent }) => (
                 <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -88,7 +88,7 @@ export default function About() {
 
           <section className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur">
             <p className="text-xs uppercase tracking-[0.3em] text-indigo-200">Story</p>
-            <h2 className="text-3xl font-bold mt-3 mb-4">📖 How we started</h2>
+            <h2 className="text-3xl font-bold mt-3 mb-4">◫ How we started</h2>
             <p className="text-slate-200 leading-relaxed text-lg mb-4">
               What began as a prototype to visualize product relationships is now a full-stack marketplace experience trusted by thousands of shoppers.
             </p>

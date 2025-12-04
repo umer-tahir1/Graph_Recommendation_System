@@ -49,8 +49,13 @@ export default function Checkout() {
   }
 
   return (
-    <section className="min-h-screen bg-slate-950 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-12 space-y-10">
+    <section className="min-h-screen bg-[#030712] text-white relative overflow-hidden">
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.4),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(236,72,153,0.25),transparent_40%)]" />
+      </div>
+      <div className="relative z-10 max-w-5xl mx-auto px-4 py-12 space-y-10">
         <header className="flex flex-col gap-2">
           <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">Checkout</p>
           <h1 className="text-4xl font-bold">Payment method</h1>
@@ -117,7 +122,7 @@ export default function Checkout() {
               {processing ? 'Processing…' : `Pay ${currency.format(totalDue)}`}
             </button>
             <Link to="/portal" className="inline-flex items-center gap-2 text-sm text-indigo-200">
-              ← Keep shopping
+              ◂ Keep shopping
             </Link>
           </form>
 

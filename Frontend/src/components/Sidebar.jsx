@@ -48,18 +48,14 @@ export default function Sidebar() {
   }
 
   const menuItems = [
-    { path: '/', icon: '🏠', label: 'Home' },
-    { path: '/products', icon: '🛍️', label: 'Products' },
-    { path: '/about', icon: 'ℹ️', label: 'About' },
-    { path: '/contact', icon: '📧', label: 'Contact Us' },
+    { path: '/', icon: '◧', label: 'Home' },
+    { path: '/portal', icon: '✦', label: 'User Portal' },
+    { path: '/about', icon: '◎', label: 'About' },
+    { path: '/contact', icon: '◈', label: 'Contact Us' },
   ]
 
-  if (user) {
-    menuItems.splice(2, 0, { path: '/portal', icon: '✨', label: 'User Portal' })
-  }
-
   if (isAdminUser) {
-    menuItems.push({ path: '/admin/products', icon: '👑', label: 'Admin Portal' })
+    menuItems.push({ path: '/admin/products', icon: '◈', label: 'Admin Portal' })
   }
 
   return (
@@ -143,7 +139,7 @@ export default function Sidebar() {
               <p className="text-sm font-medium text-gray-800 truncate">{user.email}</p>
               {isAdminUser && (
                 <span className="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold bg-indigo-50 border border-indigo-100 rounded-full px-2 py-1 mt-1">
-                  👑 Admin
+                  ◈ Admin
                 </span>
               )}
               <button

@@ -1,5 +1,5 @@
-from .db_init import init_db
-from . import crud
+from db_init import init_db
+import crud
 
 
 PRODUCTS = [

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import AdminLayout from '../components/admin/AdminLayout'
 import AdminProducts from '../components/admin/AdminProducts'
 import AdminCategories from '../components/admin/AdminCategories'
@@ -11,10 +11,8 @@ import AdminGraphDebug from '../components/admin/AdminGraphDebug'
 import AdminMarketing from '../components/admin/AdminMarketing'
 
 export default function AdminPortal() {
-  const location = useLocation()
-  
   return (
-    <Routes key={location.pathname}>
+    <Routes>
       <Route element={<AdminLayout />}>
         <Route index element={<Navigate to="products" replace />} />
         <Route path="products" element={<AdminProducts />} />

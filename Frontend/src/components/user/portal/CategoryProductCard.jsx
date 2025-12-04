@@ -10,6 +10,7 @@ export default function CategoryProductCard({
   onLike,
   pendingCart = false,
   pendingLike = false,
+  isLiked = false,
 }) {
   if (!product) return null
 
@@ -20,20 +21,24 @@ export default function CategoryProductCard({
   return (
     <div
       className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 transition-all duration-300 ${
-        isActive ? 'ring-2 ring-indigo-500 shadow-lg shadow-indigo-500/20' : 'hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10'
+        isActive
+          ? 'ring-2 ring-indigo-500 shadow-lg shadow-indigo-500/20'
+          : 'hover:scale-105 hover:z-10 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/20'
       }`}
+      style={{ willChange: 'transform', zIndex: isActive ? 20 : undefined }}
     >
       {/* Fixed height image container for perfect symmetry */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800">
+      <div className="relative w-full overflow-hidden bg-slate-800" style={{ height: '200px', minHeight: '200px', maxHeight: '200px' }}>
         {image ? (
           <img 
             src={image} 
             alt={product.name} 
-            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105 block" 
+            className="transition-transform duration-500 group-hover:scale-105 block"
+            style={{ width: '100%', height: '300px', objectFit: 'cover', objectPosition: 'center' }}
           />
         ) : (
-           <div className="flex h-full w-full items-center justify-center bg-slate-800 text-slate-600">
-             <span className="text-4xl">📦</span>
+           <div className="flex items-center justify-center bg-slate-800 text-slate-600" style={{ width: '100%', height: '300px' }}>
+             <span className="text-4xl">◆</span>
            </div>
         )}
         
@@ -47,7 +52,7 @@ export default function CategoryProductCard({
             <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-400 font-bold">{product.category}</p>
             {product.average_rating && (
               <div className="flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
-                <span>★</span>
+                <span>✦</span>
                 <span>{product.average_rating.toFixed(1)}</span>
               </div>
             )}
@@ -94,7 +99,7 @@ export default function CategoryProductCard({
                 className="flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-3 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-slate-600 transition-colors disabled:opacity-50"
                 title="Quick Add to Cart"
               >
-                {pendingCart ? '...' : '🛒'}
+                {pendingCart ? '...' : '◆'}
               </button>
             )}
             
@@ -106,10 +111,14 @@ export default function CategoryProductCard({
                   onLike(product)
                 }}
                 disabled={pendingLike}
-                className="flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800 px-3 text-slate-300 hover:bg-slate-700 hover:text-pink-400 hover:border-pink-500/30 transition-colors disabled:opacity-50"
-                title="Like Product"
+                className={`flex items-center justify-center rounded-xl border px-3 transition-colors disabled:opacity-50 ${
+                  isLiked
+                    ? 'border-pink-500 bg-pink-500/20 text-pink-400'
+                    : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-pink-400 hover:border-pink-500/30'
+                }`}
+                title={isLiked ? 'Liked' : 'Like Product'}
               >
-                {pendingLike ? '...' : '♥'}
+                {pendingLike ? '...' : (isLiked ? '◆' : '◇')}
               </button>
             )}
           </div>
@@ -126,7 +135,7 @@ function Badge({ label }) {
 function Placeholder() {
   return (
     <div className="flex h-full w-full items-center justify-center text-2xl text-slate-600" aria-hidden>
-      🛍️
+      ◆
     </div>
   )
 }

@@ -85,8 +85,15 @@ export default function FAQ() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937] py-16 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#05091f] via-[#0f172a] to-[#1f2937]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.4),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(236,72,153,0.25),transparent_40%)]" />
+      </div>
+      
+      <div className="relative z-10 py-16 px-4">
+        <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4">Frequently Asked Questions</h1>
@@ -101,7 +108,7 @@ export default function FAQ() {
               placeholder="Search for answers..."
               className="w-full px-6 py-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 text-xl">🔍</span>
+            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 text-xl">◉</span>
           </div>
         </div>
 
@@ -110,7 +117,7 @@ export default function FAQ() {
           {FAQ_DATA.map((category, categoryIndex) => (
             <div key={categoryIndex} className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <span className="text-indigo-400">📚</span>
+                <span className="text-indigo-400">▫</span>
                 {category.category}
               </h2>
               <div className="space-y-4">
@@ -157,6 +164,7 @@ export default function FAQ() {
           </a>
         </div>
       </div>
+    </div>
     </div>
   )
 }

@@ -51,6 +51,9 @@ from .models import (
     UserCategorySummary,
 )
 from .product_graph import ProductGraph as WeightedProductGraph, Product as WeightedProduct
+from .settings import get_settings
+from .email_service import _deliver_email
+from fastapi import Body
 
 
 app = FastAPI(title='Graph-Based Recommendation API')
@@ -469,9 +472,21 @@ def user_category_overview(user_ctx: UserAuthContext = Depends(require_user)):
 def user_category_products(
     category_slug: str,
     limit: int = Query(default=24, ge=1, le=60),
-    user_ctx: UserAuthContext = Depends(require_user),
 ):
-    category_name = _resolve_category_name(category_slug)
+    # Map slug to exact category name as stored in database
+    category_map = {
+        'laptops': 'Laptops',
+        'mobiles': 'Mobiles',
+        'apparel': 'Apparel',
+        'mugs': 'Mugs',
+        'headphones': 'Headphones',
+        'computers': 'Computers',
+        'bikes': 'Bikes',
+        'cars': 'Cars',
+        'home goods': 'Home Goods',
+        'kitchen & utensils': 'Kitchen & Utensils',
+    }
+    category_name = category_map.get(category_slug.lower(), category_slug.capitalize())
     rows = crud.category_product_highlights(category_name, limit=limit)
     products = [CategoryProductSummary(**row) for row in rows]
     return CategoryListingResponse(category=category_name, products=products)
@@ -840,7 +855,17 @@ def remove_cart_item(item_id: int):
 @app.get('/me/cart', response_model=List[CartItem])
 def get_my_cart(user_ctx: UserAuthContext = Depends(require_user)):
     internal_user = _resolve_internal_user(user_ctx, None)
+    print(f"[DEBUG] /me/cart user_ctx.user_id: {user_ctx.user_id}")
+    print(f"[DEBUG] /me/cart internal_user: {internal_user}")
     rows = crud.list_cart_items(internal_user['id'])
+    print(f"[DEBUG] /me/cart returned rows: {rows}")
+    for row in rows:
+        if not row.get('product_name') or not row.get('price') or not row.get('image_url'):
+            product = crud.get_product(row['product_id'])
+            if product:
+                row['product_name'] = product.get('name')
+                row['price'] = product.get('price')
+                row['image_url'] = product.get('image_url')
     return [CartItem(**row) for row in rows]
 
 
@@ -1054,6 +1079,68 @@ def product_graph(product_id: int):
     }
 
 
+@app.get('/products/{product_id}/analytics')
+def product_analytics(product_id: int):
+    """
+    Get comprehensive analytics for a product including:
+    - Users who viewed the product
+    - Users who purchased the product
+    - Interaction counts and statistics
+    """
+    # Get all interactions for this product
+    all_interactions = crud.get_interactions()
+    product_interactions = [i for i in all_interactions if i['product_id'] == product_id]
+    
+    # Separate views and purchases
+    views = []
+    purchases = []
+    likes = []
+    cart_adds = []
+    
+    for interaction in product_interactions:
+        action = interaction.get('action', interaction.get('interaction_type', 'view'))
+        user_id = interaction.get('user_id')
+        created_at = interaction.get('created_at', interaction.get('timestamp', ''))
+        
+        user_info = {
+            'user_id': user_id,
+            'action': action,
+            'timestamp': created_at,
+            'weight': interaction.get('weight', 1.0)
+        }
+        
+        if action == 'view':
+            views.append(user_info)
+        elif action == 'purchase':
+            purchases.append(user_info)
+        elif action == 'like':
+            likes.append(user_info)
+        elif action == 'add_to_cart':
+            cart_adds.append(user_info)
+    
+    # Get unique user counts
+    unique_viewers = list(set(v['user_id'] for v in views))
+    unique_purchasers = list(set(p['user_id'] for p in purchases))
+    unique_likers = list(set(l['user_id'] for l in likes))
+    
+    return {
+        'product_id': product_id,
+        'total_views': len(views),
+        'total_purchases': len(purchases),
+        'total_likes': len(likes),
+        'total_cart_adds': len(cart_adds),
+        'unique_viewers': len(unique_viewers),
+        'unique_purchasers': len(unique_purchasers),
+        'unique_likers': len(unique_likers),
+        'viewers': unique_viewers,
+        'purchasers': unique_purchasers,
+        'likers': unique_likers,
+        'recent_views': views[-10:] if len(views) > 10 else views,
+        'recent_purchases': purchases[-10:] if len(purchases) > 10 else purchases,
+        'all_interactions': len(product_interactions)
+    }
+
+
 @app.get('/related_products/{product_id}')
 def related_products(product_id: int, depth: int = 2):
     interactions = crud.get_interactions()
@@ -1063,6 +1150,29 @@ def related_products(product_id: int, depth: int = 2):
         raise HTTPException(status_code=404, detail='Product not found')
     related = recommender.bfs_related_products(product_id, prod_graph, max_depth=depth)
     return {'product_id': product_id, 'related': related}
+
+
+@app.post('/contact_message')
+def contact_message(
+    name: str = Body(...),
+    email: str = Body(...),
+    subject: str = Body(...),
+    message: str = Body(...)
+):
+    settings = get_settings()
+    admin_emails = settings.admin_email_allowlist
+    if not admin_emails:
+        raise HTTPException(status_code=500, detail='No admin emails configured')
+    content = f"Contact Form Submission\n\nFrom: {name} <{email}>\nSubject: {subject}\n\nMessage:\n{message}"
+    errors = []
+    for admin_email in admin_emails:
+        try:
+            _deliver_email(admin_email, f"[Contact] {subject}", content)
+        except Exception as exc:
+            errors.append(str(exc))
+    if errors:
+        return {"status": "error", "errors": errors}
+    return {"status": "sent"}
 
 
 @app.get('/')
