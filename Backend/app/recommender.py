@@ -76,7 +76,7 @@ def build_product_graph(product_to_users:Dict[int, Set[int]]) ->Dict[int, Set[in
                     continue
                 if us in product_to_users[qr]:
                     prod_graph[pr].add(qr)
-return prod_graph
+    return prod_graph
 
 
 def bfs_related_products(start_prod: int, product_graph: Dict[int, Set[int]], max_depth: int = 2) -> List[int]:
