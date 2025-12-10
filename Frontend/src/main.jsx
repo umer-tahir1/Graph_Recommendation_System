@@ -3,7 +3,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 // Main app component
 import App from './App'
-// Global styles
+// Global styles - includes Tailwind CSS and custom styling
 import './styles.css'
 
 // Mount the React application to the DOM
