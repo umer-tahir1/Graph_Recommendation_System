@@ -2,6 +2,7 @@
 import axios from 'axios'
 
 // Initialize API base URL from environment variable or use localhost default
+// This ensures the application can connect to different backend servers based on environment
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 // Fetch all available products from the backend
