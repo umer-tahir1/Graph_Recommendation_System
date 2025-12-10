@@ -27,11 +27,11 @@ export default function Login() {
     setLoading(true)
 
     // Attempt to sign in with email and password
-    const { error: signInError } = await signIn(email, password)
+    const { error: authError } = await signIn(email, password)
 
     // Handle login error
-    if (signInError) {
-      setError(signInError.message)
+    if (authError) {
+      setError(authError.message)
       setLoading(false)
     } else {
       // Redirect to products page on successful login
