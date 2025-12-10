@@ -3,6 +3,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 
 // Home page component - landing page with hero section and features
+// Provides gradient background and motivates users to explore products
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600">
