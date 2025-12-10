@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 // Signup page component - allows new users to create accounts
+// Validates email format, password strength, and confirmation match
 export default function Signup() {
   // Navigation hook for redirecting
   const navigate = useNavigate()
