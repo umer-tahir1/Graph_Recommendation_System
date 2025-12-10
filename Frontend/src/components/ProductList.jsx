@@ -2,6 +2,7 @@
 import React from 'react'
 
 // ProductList component - displays a grid of products with purchase options
+// Responsive design adapts from 1 column (mobile) to 3 columns (desktop)
 // Props: products (array), onInteract (callback), selectedUser (current user), onShowProduct (callback)
 export default function ProductList({products, onInteract, selectedUser, onShowProduct}){
   return (
