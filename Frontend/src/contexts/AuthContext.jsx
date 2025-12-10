@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, isAdmin } from '../lib/supabase'
 
 // Create authentication context to share auth state globally
+// Manages user session, admin status, and authentication methods
 const AuthContext = createContext({})
 
 // Custom hook to access authentication context
