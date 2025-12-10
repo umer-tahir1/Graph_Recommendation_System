@@ -1,20 +1,29 @@
+// React and routing imports
 import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+// Custom hook for authentication state
 import { useAuth } from '../contexts/AuthContext'
 
+// Sidebar component - provides collapsible navigation menu on the left side
 export default function Sidebar() {
+  // Get current location and navigation functionality
   const location = useLocation()
   const navigate = useNavigate()
+  // Get authentication state and user role
   const { user, isAdminUser, signOut } = useAuth()
+  // State to track if sidebar is open
   const [isOpen, setIsOpen] = useState(false)
 
+  // Check if current route is active
   const isActive = (path) => location.pathname === path
 
+  // Handle user logout and redirect to login
   const handleLogout = async () => {
     await signOut()
     navigate('/auth/login')
   }
 
+  // Define menu items with icons and routes
   const menuItems = [
     { path: '/', icon: '🏠', label: 'Home' },
     { path: '/products', icon: '🛍️', label: 'Products' },
@@ -22,13 +31,14 @@ export default function Sidebar() {
     { path: '/contact', icon: '📧', label: 'Contact Us' },
   ]
 
+  // Add admin portal to menu only if user is admin
   if (isAdminUser) {
     menuItems.push({ path: '/admin', icon: '👑', label: 'Admin Portal' })
   }
 
   return (
     <>
-      {/* Three Dots Toggle Button (like browser menu) */}
+      {/* Toggle button to open/close sidebar */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Open menu"
@@ -41,7 +51,7 @@ export default function Sidebar() {
         </div>
       </button>
 
-      {/* Overlay (click to close) */}
+      {/* Semi-transparent overlay that closes sidebar when clicked */}
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}
@@ -49,7 +59,7 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar panel */}
+      {/* Sidebar navigation panel with sliding animation */}
       <aside
         className={`fixed top-0 left-0 h-full w-56 bg-white shadow-xl border-r border-gray-200 transform transition-transform duration-300 ease-out z-40 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
@@ -57,9 +67,10 @@ export default function Sidebar() {
         aria-hidden={!isOpen}
       >
         <div className="flex flex-col h-full py-4">
-          {/* Navigation */}
+          {/* Navigation menu items */}
           <nav className="flex-1 px-3 overflow-y-auto">
             <div className="space-y-1 mt-2">
+              {/* Render each menu item as a navigation link */}
               {menuItems.map((item) => (
                 <Link
                   key={item.path}
@@ -76,6 +87,7 @@ export default function Sidebar() {
                 </Link>
               ))}
             </div>
+            {/* Show signup and login buttons if user is not authenticated */}
             {!user && (
               <div className="mt-5 pt-5 border-t border-gray-200 space-y-2">
                 <Link
@@ -96,7 +108,7 @@ export default function Sidebar() {
             )}
           </nav>
 
-          {/* User Info */}
+          {/* User information and logout section */}
           {user && (
             <div className="px-3 py-3 border-t border-gray-200">
               <p className="text-xs text-gray-500 mb-1">Logged in as</p>

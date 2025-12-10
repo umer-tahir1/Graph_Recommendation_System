@@ -1,13 +1,21 @@
+// React imports
 import React, { useEffect, useRef } from 'react'
+// Visualization library for network graphs
 import { Network } from 'vis-network'
 
+// RecommendationGraph component - visualizes user-product relationships using a network graph
+// Props: data (graph nodes and edges structure)
 export default function RecommendationGraph({ data }) {
+  // Reference to the container DOM element for the graph
   const containerRef = useRef(null)
 
+  // Initialize and manage the network visualization
   useEffect(() => {
+    // Exit if container or data is not available
     if (!containerRef.current || !data) return
 
-    const options = {
+    // Configure network visualization options
+      // Physics engine configuration for automatic node layout
       physics: {
         enabled: true,
         stabilization: {
@@ -20,6 +28,7 @@ export default function RecommendationGraph({ data }) {
           springConstant: 0.04
         }
       },
+      // Node appearance and behavior settings
       nodes: {
         font: {
           size: 14,
@@ -30,6 +39,7 @@ export default function RecommendationGraph({ data }) {
           maximum: 150
         }
       },
+      // Edge (connection) appearance settings
       edges: {
         width: 2,
         font: {
@@ -43,6 +53,7 @@ export default function RecommendationGraph({ data }) {
           type: 'continuous'
         }
       },
+      // User interaction settings
       interaction: {
         navigationButtons: true,
         keyboard: true,
@@ -50,13 +61,16 @@ export default function RecommendationGraph({ data }) {
       }
     }
 
+    // Create network visualization with data and options
     const network = new Network(containerRef.current, data, options)
 
+    // Cleanup function to destroy network when component unmounts
     return () => {
       network.destroy()
     }
   }, [data])
 
+  // Render container div for the network visualization
   return (
     <div
       ref={containerRef}

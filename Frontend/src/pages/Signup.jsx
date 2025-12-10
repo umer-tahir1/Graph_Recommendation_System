@@ -1,52 +1,70 @@
+// React hooks and routing imports
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+// Authentication context hook
 import { useAuth } from '../contexts/AuthContext'
 
+// Signup page component - allows new users to create accounts
 export default function Signup() {
+  // Navigation hook for redirecting
   const navigate = useNavigate()
+  // Get signup function from auth context
   const { signUp } = useAuth()
+  // Form state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  // Status and error states
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  // Handle signup form submission
   const handleSubmit = async (e) => {
+    // Prevent form default submission
     e.preventDefault()
+    // Clear any previous errors
     setError('')
 
+    // Validate that passwords match
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
     }
 
+    // Validate minimum password length
     if (password.length < 6) {
       setError('Password must be at least 6 characters')
       return
     }
 
+    // Set loading state
     setLoading(true)
 
+    // Attempt to sign up with email and password
     const { error: signUpError } = await signUp(email, password)
 
+    // Handle signup error
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
     } else {
+      // Set success state to show confirmation message
       setSuccess(true)
       setLoading(false)
     }
   }
 
+  // Show success message if signup was successful
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center px-4">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
-            <div className="text-6xl mb-4">✅</div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">Check Your Email!</h1>
-            <p className="text-gray-600 mb-6">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="text-6xl mb-4">✅</div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">Check Your Email!</h1>
+          {/* Email verification instructions */}
+          <p className="text-gray-600 mb-6">
               We've sent a verification link to <strong>{email}</strong>. 
               Please check your inbox and click the link to verify your account.
             </p>
@@ -66,11 +84,13 @@ export default function Signup() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
+          {/* Signup form header */}
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-800 mb-2">Create Account</h1>
             <p className="text-gray-600">Sign up to get started</p>
           </div>
 
+          {/* Display error message if signup fails */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
               {error}
@@ -78,6 +98,7 @@ export default function Signup() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email input field */}
             <div>
               <label className="block text-gray-700 font-semibold mb-2">Email Address</label>
               <input

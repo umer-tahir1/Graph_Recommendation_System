@@ -1,11 +1,13 @@
+// React and routing imports
 import React from 'react'
 import { Link } from 'react-router-dom'
 
+// About page component - displays company information and mission
 export default function About() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Header */}
+        {/* Page header with title */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-800 mb-4">About Us</h1>
           <p className="text-xl text-gray-600">
@@ -13,9 +15,9 @@ export default function About() {
           </p>
         </div>
 
-        {/* Content Sections */}
+        {/* Multiple content sections describing company */}
         <div className="space-y-8">
-          {/* Mission */}
+          {/* Mission Statement */}
           <section className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-indigo-600">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">🎯 Our Mission</h2>
             <p className="text-gray-700 leading-relaxed text-lg">
@@ -23,7 +25,7 @@ export default function About() {
             </p>
           </section>
 
-          {/* Who We Are */}
+          {/* Team Background and Expertise */}
           <section className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-purple-600">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">👥 Who We Are</h2>
             <p className="text-gray-700 leading-relaxed text-lg mb-4">
@@ -34,10 +36,11 @@ export default function About() {
             </p>
           </section>
 
-          {/* Why Choose Us */}
+          {/* Key Benefits and Differentiators */}
           <section className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-pink-600">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">✨ Why Choose Us?</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Benefit cards with descriptions */}
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <h4 className="font-bold text-blue-900 mb-2">Quality Products</h4>
                 <p className="text-sm text-blue-700">All our products are carefully selected and verified</p>
@@ -65,7 +68,7 @@ export default function About() {
             </div>
           </section>
 
-          {/* Our Story */}
+          {/* Company History and Growth */}
           <section className="bg-white rounded-xl shadow-lg p-8 border-l-4 border-green-600">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">📖 Our Story</h2>
             <p className="text-gray-700 leading-relaxed text-lg mb-4">
@@ -76,7 +79,7 @@ export default function About() {
             </p>
           </section>
 
-          {/* Contact CTA */}
+          {/* Call to Action - encourages contacting company */}
           <section className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-8 text-white text-center">
             <h2 className="text-3xl font-bold mb-4">Have Questions?</h2>
             <p className="text-lg mb-6">We'd love to hear from you! Feel free to reach out with any questions or feedback.</p>
@@ -85,7 +88,7 @@ export default function About() {
             </button>
           </section>
 
-          {/* CTA */}
+          {/* Call to Action Button - directs to products */}
           <div className="text-center py-8">
             <Link
               to="/products"

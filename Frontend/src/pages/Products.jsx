@@ -1,31 +1,42 @@
+// React hooks for state management
 import React, { useEffect, useState } from 'react'
+// API functions for fetching data
 import { fetchProducts, fetchUsers, fetchRecommendations, createInteraction } from '../api'
+// Component for visualizing recommendation graph
 import RecommendationGraph from '../components/RecommendationGraph'
 
+// Products page component - displays products, users, and recommendations with visualization
 export default function Products() {
+  // State for product and user data
   const [products, setProducts] = useState([])
   const [users, setUsers] = useState([])
+  // State for currently selected user and product
   const [selectedUser, setSelectedUser] = useState(null)
   const [selectedProduct, setSelectedProduct] = useState(null)
+  // State for recommendations and graph visualization
   const [recs, setRecs] = useState([])
   const [graphData, setGraphData] = useState(null)
 
+  // Fetch products and users on component mount
   useEffect(() => {
     fetchProducts().then(setProducts)
     fetchUsers().then(setUsers)
   }, [])
 
+  // Handle user selection and fetch recommendations
   const onRecommend = async (userId) => {
     setSelectedUser(userId)
     const r = await fetchRecommendations(userId, 10)
     setRecs(r)
     
-    // Build graph data
+    // Build graph visualization data structure
+    // Create node for current user
     const graphNodes = [
       { id: `user_${userId}`, label: `User ${userId}`, color: '#6366f1', title: 'Current User' }
     ]
     const graphEdges = []
     
+    // Add all products as nodes to the graph
     products.forEach(p => {
       graphNodes.push({ 
         id: `product_${p.id}`, 
@@ -35,6 +46,7 @@ export default function Products() {
       })
     })
 
+    // Create edges (connections) from user to recommended products
     r.forEach((rec, idx) => {
       graphEdges.push({
         from: `user_${userId}`,
@@ -48,6 +60,7 @@ export default function Products() {
     setGraphData({ nodes: graphNodes, edges: graphEdges })
   }
 
+  // Handle user-product interaction and update recommendations
   const onInteract = async (userId, productId) => {
     await createInteraction(userId, productId)
     if (selectedUser) onRecommend(selectedUser)
@@ -56,14 +69,16 @@ export default function Products() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Page title and description */}
         <h1 className="text-4xl font-bold text-gray-800 mb-2">Shop Our Collection</h1>
         <p className="text-gray-600 mb-8">Browse our products and get personalized recommendations</p>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Products Section */}
+          {/* Left sidebar: Product list */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">📦 Products</h2>
+              {/* Scrollable list of all products */}
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 max-h-96 overflow-y-auto">
                 {products.map(p => (
                   <button
@@ -82,9 +97,9 @@ export default function Products() {
             </div>
           </div>
 
-          {/* Users & Recommendations Section */}
+          {/* Right content: Users, recommendations, and details */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Users */}
+            {/* User selection section */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">👥 Select Your Profile</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -104,15 +119,17 @@ export default function Products() {
               </div>
             </div>
 
-            {/* Recommendations with Graph */}
+            {/* Recommendations section - shows only when user is selected */}
             {selectedUser && (
               <>
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">💝 Recommended For You</h2>
+                  {/* Show empty message or list of recommendations */}
                   {recs.length === 0 ? (
                     <p className="text-gray-500 text-lg">No recommendations available yet</p>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Display each recommendation with score */}
                       {recs.map(r => {
                         const prod = products.find(p => p.id === r.product_id)
                         return (
@@ -137,7 +154,7 @@ export default function Products() {
                   )}
                 </div>
 
-                {/* Graph Visualization */}
+                {/* Graph Visualization - displays network of recommendations */}
                 {graphData && (
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">🎯 Your Recommendation Graph</h2>
@@ -147,7 +164,7 @@ export default function Products() {
               </>
             )}
 
-            {/* Selected Product Detail */}
+            {/* Selected Product Detail - shows when product is clicked */}
             {selectedProduct && (
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl shadow-lg p-6">
                 <div className="flex justify-between items-start mb-4">

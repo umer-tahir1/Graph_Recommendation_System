@@ -1,15 +1,23 @@
+// React and routing imports
 import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+// Custom hook to access authentication state
 import { useAuth } from '../contexts/AuthContext'
 
+// NavBar component - handles top navigation and provides hamburger menu
 export default function NavBar() {
+  // Get current page location and navigation functionality
   const location = useLocation()
   const navigate = useNavigate()
+  // Get user authentication state and logout function
   const { user, isAdminUser, signOut } = useAuth()
+  // State to track if sidebar menu is open
   const [isOpen, setIsOpen] = useState(false)
 
+  // Helper function to check if current route matches a path
   const isActive = (path) => location.pathname === path
 
+  // Handle user logout and redirect to login page
   const handleLogout = async () => {
     await signOut()
     navigate('/auth/login')
@@ -17,10 +25,11 @@ export default function NavBar() {
 
   return (
     <>
+      {/* Top navigation bar with gradient background */}
       <nav className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-lg sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-20">
-            {/* Hamburger + Logo */}
+            {/* Left section: Hamburger menu button and logo */}
             <div className="flex items-center gap-4">
               {/* Hamburger Menu Button */}
               <button
@@ -41,8 +50,9 @@ export default function NavBar() {
               </Link>
             </div>
 
-            {/* Right side - Login/Logout */}
+            {/* Right section: User authentication buttons */}
             <div className="flex items-center">
+              {/* Show user email and logout button if authenticated, otherwise show login link */}
               {user ? (
                 <div className="flex items-center gap-2">
                   <span className="text-white text-sm hidden sm:inline">
@@ -68,13 +78,14 @@ export default function NavBar() {
         </div>
       </nav>
 
-      {/* Sidebar that slides in */}
+      {/* Sliding sidebar menu drawer */}
       <div
         className={`fixed top-0 left-0 h-full w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="p-6">
+          {/* Sidebar header with menu title and close button */}
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold text-gray-800">Menu</h2>
             <button
@@ -85,6 +96,7 @@ export default function NavBar() {
             </button>
           </div>
           
+          {/* Navigation menu items */}
           <div className="space-y-3">
             <Link
               to="/"
@@ -157,7 +169,7 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* Dark overlay */}
+      {/* Dark overlay that appears when sidebar is open - click to close */}
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}

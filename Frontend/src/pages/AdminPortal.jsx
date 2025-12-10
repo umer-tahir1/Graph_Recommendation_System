@@ -1,20 +1,30 @@
+// React hooks and routing imports
 import React, { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+// Authentication context
 import { useAuth } from '../contexts/AuthContext'
+// API functions and Supabase service
 import { fetchProducts, fetchUsers } from '../api'
 import { supabase } from '../lib/supabase'
 
+// AdminPortal page component - dashboard for administrators to manage products and users
+// Only accessible to users with admin privileges
 export default function AdminPortal() {
+  // Get authentication state and admin status
   const { user, isAdminUser, loading } = useAuth()
+  // State for products and users data
   const [products, setProducts] = useState([])
   const [users, setUsers] = useState([])
+  // State for dashboard statistics
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalUsers: 0,
     totalInteractions: 0
   })
+  // State for list of all administrators
   const [allAdmins, setAllAdmins] = useState([])
 
+  // Load data when user becomes admin
   useEffect(() => {
     if (isAdminUser) {
       loadData()
@@ -22,6 +32,7 @@ export default function AdminPortal() {
     }
   }, [isAdminUser])
 
+  // Fetch products and users data and calculate statistics
   const loadData = async () => {
     const prods = await fetchProducts()
     const usrs = await fetchUsers()
@@ -34,6 +45,7 @@ export default function AdminPortal() {
     })
   }
 
+  // Fetch list of all admins from Supabase authentication system
   const loadAdmins = async () => {
     // Fetch all users from Supabase Auth (admin only)
     try {
@@ -46,6 +58,7 @@ export default function AdminPortal() {
     }
   }
 
+  // Show loading indicator while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -54,10 +67,12 @@ export default function AdminPortal() {
     )
   }
 
+  // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/auth/login" />
   }
 
+  // Show access denied message if user is not an admin
   if (!isAdminUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-4">
@@ -81,13 +96,13 @@ export default function AdminPortal() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Header with welcome message */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-8 text-white mb-8">
           <h1 className="text-4xl font-bold mb-2">Admin Portal</h1>
           <p className="text-indigo-100">Welcome back, {user.email}</p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Statistics Cards - display key metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
@@ -120,7 +135,7 @@ export default function AdminPortal() {
           </div>
         </div>
 
-        {/* Admin Team */}
+        {/* Admin Team Section - displays authorized administrators */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">👑 Admin Team</h2>
           <p className="text-gray-600 mb-4">Authorized administrators with full access</p>
@@ -138,7 +153,7 @@ export default function AdminPortal() {
           </div>
         </div>
 
-        {/* Products Management */}
+        {/* Products Management Section - table to view and manage products */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">📦 Products Management</h2>
           <div className="overflow-x-auto">
@@ -172,7 +187,7 @@ export default function AdminPortal() {
           </div>
         </div>
 
-        {/* Users Management */}
+        {/* Users Management Section - table to view and manage users */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">👥 Users Management</h2>
           <div className="overflow-x-auto">
