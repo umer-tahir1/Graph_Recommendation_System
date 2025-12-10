@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 // Sidebar component - provides collapsible navigation menu on the left side
+// Uses smooth transitions and backdrop blur for modern UX
 export default function Sidebar() {
   // Get current location and navigation functionality
   const location = useLocation()
