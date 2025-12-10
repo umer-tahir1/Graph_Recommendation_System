@@ -42,7 +42,7 @@ export default function NavBar() {
               </button>
 
               <Link to="/" className="flex items-center gap-2">
-                <span className="text-3xl">📊</span>
+                <span className="text-3xl">◈</span>
                 <div>
                   <h1 className="text-2xl font-bold text-white">GRS</h1>
                   <p className="text-xs text-indigo-100">Graph Recommendation</p>
@@ -54,10 +54,18 @@ export default function NavBar() {
             <div className="flex items-center">
               {/* Show user email and logout button if authenticated, otherwise show login link */}
               {user ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-white text-sm hidden sm:inline">
-                    {user.email}
-                  </span>
+                <div className="flex items-center gap-3">
+                  <div className="text-white text-sm hidden sm:flex sm:flex-col sm:items-end">
+                    <span className="font-semibold">{user.email}</span>
+                    {isAdminUser && (
+                      <Link
+                        to="/admin"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-white/10 border border-white/30"
+                      >
+                        ◈ Admin
+                      </Link>
+                    )}
+                  </div>
                   <button
                     onClick={handleLogout}
                     className="px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition font-semibold"
@@ -107,7 +115,7 @@ export default function NavBar() {
                   : 'text-gray-800 hover:bg-gray-100'
               }`}
             >
-              🏠 Home
+              ◧ Home
             </Link>
             <Link
               to="/products"
@@ -118,7 +126,7 @@ export default function NavBar() {
                   : 'text-gray-800 hover:bg-gray-100'
               }`}
             >
-              🛍️ Products
+              ◆ Products
             </Link>
             <Link
               to="/about"
@@ -129,7 +137,40 @@ export default function NavBar() {
                   : 'text-gray-800 hover:bg-gray-100'
               }`}
             >
-              ℹ️ About
+              ◎ About
+            </Link>
+            <Link
+              to="/contact"
+              onClick={() => setIsOpen(false)}
+              className={`block px-4 py-3 rounded-lg text-lg font-medium transition ${
+                isActive('/contact') 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              ◈ Contact Us
+            </Link>
+            <Link
+              to="/faq"
+              onClick={() => setIsOpen(false)}
+              className={`block px-4 py-3 rounded-lg text-lg font-medium transition ${
+                isActive('/faq') 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              ◐ FAQ
+            </Link>
+            <Link
+              to="/blogs"
+              onClick={() => setIsOpen(false)}
+              className={`block px-4 py-3 rounded-lg text-lg font-medium transition ${
+                isActive('/blogs') 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'text-gray-800 hover:bg-gray-100'
+              }`}
+            >
+              ◫ Blogs
             </Link>
             
             {isAdminUser && (
@@ -142,7 +183,7 @@ export default function NavBar() {
                     : 'text-gray-800 hover:bg-gray-100'
                 }`}
               >
-                👑 Admin Portal
+                ◈ Admin Portal
               </Link>
             )}
 
