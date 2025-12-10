@@ -2,6 +2,7 @@
 import React from 'react'
 
 // ProductDetail component - displays detailed information about a selected product
+// This component shows product name, category, description, and purchase options
 // Props: product (product object), selectedUser (current user), onInteract (callback), onClose (callback)
 export default function ProductDetail({product, selectedUser, onInteract, onClose}){
   return (
