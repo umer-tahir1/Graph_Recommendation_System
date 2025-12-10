@@ -1,6 +1,7 @@
 from typing import Optional, List, Literal, Dict, Any
 from pydantic import BaseModel, Field
 
+# Database models for the graph recommendation system
 
 class User(BaseModel):
     id: Optional[int] = None
